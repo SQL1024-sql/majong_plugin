@@ -1,0 +1,15 @@
+name: ${project.name}
+version: ${project.version}
+main: io.github.sql1024.mahjong.bukkit.RiichiMahjongPlugin
+api-version: '${paper.api.version}'
+description: ${project.description}
+authors: [ sql1024-sql ]
+website: https://github.com/sql1024-sql/majong_plugin
+
+permissions:
+  mahjong.play:
+    description: 可以開桌與遊玩日本麻將
+    default: true
+  mahjong.admin:
+    description: 可以重新載入設定
+    default: op
