@@ -19,6 +19,7 @@ public record WinContext(
         boolean houtei,
         boolean tenhou,
         boolean chiihou,
+        boolean openTanyao,
         List<Tile> doraIndicators,
         List<Tile> uraIndicators,
         int honba,
@@ -56,6 +57,7 @@ public record WinContext(
         private boolean houtei;
         private boolean tenhou;
         private boolean chiihou;
+        private boolean openTanyao = true;
         private List<Tile> doraIndicators = List.of();
         private List<Tile> uraIndicators = List.of();
         private int honba;
@@ -125,6 +127,12 @@ public record WinContext(
             return this;
         }
 
+        /** Whether all simples still scores once the hand has been opened. */
+        public Builder openTanyao(boolean value) {
+            this.openTanyao = value;
+            return this;
+        }
+
         public Builder doraIndicators(List<Tile> indicators) {
             this.doraIndicators = indicators;
             return this;
@@ -147,7 +155,7 @@ public record WinContext(
 
         public WinContext build() {
             return new WinContext(winningTile, tsumo, seatWind, roundWind, riichi, doubleRiichi,
-                    ippatsu, rinshan, chankan, haitei, houtei, tenhou, chiihou,
+                    ippatsu, rinshan, chankan, haitei, houtei, tenhou, chiihou, openTanyao,
                     doraIndicators, uraIndicators, honba, riichiSticks);
         }
     }

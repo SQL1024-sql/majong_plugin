@@ -123,7 +123,7 @@ public final class YakuEvaluator {
         List<Group> triplets = sets.stream().filter(Group::isTripletLike).toList();
         Group pair = interpretation.pair();
 
-        if (allTilesMatch(interpretation, Tiles::isSimple)) {
+        if ((closed || context.openTanyao()) && allTilesMatch(interpretation, Tiles::isSimple)) {
             flags.add(Yaku.TANYAO);
         }
         if (allTilesMatch(interpretation, Tiles::isTerminalOrHonor)) {

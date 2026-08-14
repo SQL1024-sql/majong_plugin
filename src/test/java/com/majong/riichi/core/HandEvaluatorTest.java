@@ -219,6 +219,22 @@ class HandEvaluatorTest {
     }
 
     @Test
+    void openAllSimplesFollowsTheTableRule() {
+        Hand hand = Hand.of("234567m34555p");
+        hand.addMeld(Meld.chi(List.of(tile("6s"), tile("7s"), tile("8s")), tile("6s"), 3));
+        Tile winning = tile("4m");
+
+        WinContext.Builder base = WinContext.builder(winning).seatWind(Tiles.SOUTH);
+
+        HandValue allowed = HandEvaluator.evaluate(hand, base.openTanyao(true).build());
+        assertNotNull(allowed);
+        assertEquals(Set.of(Yaku.TANYAO), yakuOf(allowed));
+
+        // With the rule switched off the hand has nothing else to score.
+        assertNull(HandEvaluator.evaluate(hand, base.openTanyao(false).build()));
+    }
+
+    @Test
     void dealerRonPaysMore() {
         Hand hand = Hand.of("234567m234p55z");
         hand.addMeld(Meld.pon(List.of(tile("6z"), tile("6z"), tile("6z")), tile("6z"), 2));

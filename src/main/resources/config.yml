@@ -1,0 +1,22 @@
+# How long a player has to act before the table plays for them.
+# Running out of time throws the tile just drawn, or skips a call.
+turn-timeout-seconds: 30
+
+# Pause between computer players' moves, in ticks (20 ticks = 1 second).
+bot-delay-ticks: 12
+
+# Pause between the end of one hand and the deal of the next, in seconds.
+next-hand-delay-seconds: 6
+
+rules:
+  # hanchan plays east and south rounds, tonpuusen only east.
+  game-length: hanchan
+  starting-points: 25000
+  # One five of each suit counts as a red dora.
+  red-fives: true
+  # All simples scores in an open hand.
+  open-tanyao: true
+  # Only the player closest to the discarder may win on a discard.
+  head-bump: true
+  # Stop the game as soon as somebody goes below zero points.
+  end-on-bankruptcy: true

@@ -762,6 +762,7 @@ public final class RiichiGame {
                 .houtei(!tsumo && !chankan && wall.remaining() == 0)
                 .tenhou(tsumo && firstTurn && seat == dealer)
                 .chiihou(tsumo && firstTurn && seat != dealer)
+                .openTanyao(rules.openTanyao())
                 .doraIndicators(wall.doraIndicators())
                 .uraIndicators(wall.uraIndicators())
                 .honba(honba)
