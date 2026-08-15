@@ -44,9 +44,22 @@
     <build>
         <finalName>${project.name}-${project.version}</finalName>
         <resources>
+            <!-- plugin.yml wants the project version substituted in. -->
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
+                <includes>
+                    <include>plugin.yml</include>
+                </includes>
+            </resource>
+            <!-- Everything else is copied byte for byte; filtering would
+                 corrupt the tile artwork in the resource pack. -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>plugin.yml</exclude>
+                </excludes>
             </resource>
         </resources>
         <plugins>

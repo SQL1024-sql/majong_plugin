@@ -3,6 +3,8 @@
 在 Minecraft 伺服器上打日本麻將（立直麻雀）的 Paper 外掛。四家一桌，從聊天欄點牌出牌，
 支援吃碰槓、立直、振聽、寶牌與裏寶牌、役滿，並照日本麻雀的符計算與點數表結算。
 
+![手牌](docs/hand.png)
+
 - **伺服器**：Paper `26.1.2`
 - **Java**：25
 - **指令**：`/mahjong`（別名 `/mj`、`/majong`、`/riichi`）
@@ -39,11 +41,45 @@ mvn package
 | `/mj hand` | 重新顯示手牌 |
 | `/mj info` | 看場況、各家分數與牌河 |
 | `/mj list` / `/mj leave` | 列出牌桌 / 離桌 |
+| `/mj style <auto\|tiles\|text>` | 切換牌圖或文字顯示 |
 
 牌的寫法：`1m`–`9m` 萬子、`1p`–`9p` 筒子、`1s`–`9s` 索子、
 `1z`–`7z` 東南西北白發中、`0m`/`0p`/`0s` 赤五。
 
 逾時（預設 30 秒）沒動作時，系統會替你摸切或跳過鳴牌。
+
+## 牌面
+
+外掛附帶一份資源包，把 34 種牌加上三張赤五畫成聊天欄字型（`U+E000`–`U+E024`）。
+沒有資源包的玩家會自動退回彩色文字（`3m`、`東`），不會看到方塊亂碼。
+
+![牌面](docs/tiles.png)
+
+萬子是紅色漢字數字、筒子是藍點、索子是綠竹、字牌直接寫字，赤五用粉紅底色標示。
+圖是用 `tools/generate_tiles.py` 產生的（需要 Pillow 與 WenQuanYi Zen Hei，
+字牌的漢字取自它的 12px 點陣字形），改牌面只要改腳本再跑一次。
+
+### 讓玩家看到牌圖
+
+外掛啟動時會把資源包寫成 `plugins/MajongPlugin/majong-tiles.zip`，並在 log 印出 SHA-1：
+
+```
+[MajongPlugin] Tile resource pack written to plugins/MajongPlugin/majong-tiles.zip (sha1 3179...)
+```
+
+把這個 zip 放到玩家能下載的地方，再把網址與 SHA-1 填進 config：
+
+```yaml
+tile-graphics: auto
+resource-pack:
+  url: 'https://example.com/majong-tiles.zip'
+  sha1: '31795617e3fff968082a6f40c66efa7215d0ee7d'
+  required: false
+```
+
+玩家進伺服器時就會收到資源包詢問，接受後自動切成牌圖。不想用外掛推送的話，
+也可以把它併進伺服器既有的資源包，或請玩家自己丟進 `resourcepacks/`。
+`tile-graphics: text` 可以整台伺服器關掉牌圖，個別玩家則用 `/mj style`。
 
 ## 設定
 
@@ -53,6 +89,7 @@ mvn package
 turn-timeout-seconds: 30    # 思考時間
 bot-delay-ticks: 12         # 電腦玩家出牌間隔
 next-hand-delay-seconds: 6  # 下一局開始前的間隔
+tile-graphics: auto         # auto / tiles / text，見「牌面」一節
 rules:
   game-length: hanchan      # hanchan 半莊 / tonpuusen 東風戰
   starting-points: 25000
@@ -97,6 +134,7 @@ com.majong.riichi.core    牌、牌山、手牌、和牌判定、役、符、點
 com.majong.riichi.game    對局引擎：摸打、鳴牌、立直、流局、連莊
 com.majong.riichi.bot     電腦玩家
 com.majong.riichi.plugin  Paper 外掛：牌桌、指令、聊天欄介面
+tools/generate_tiles.py   產生牌面圖與資源包
 ```
 
 `core` 與 `game` 完全不依賴伺服器 API，可以單獨拿去用。

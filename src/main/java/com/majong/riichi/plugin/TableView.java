@@ -16,9 +16,12 @@ import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 
-/** Turns the state of a table into chat messages. */
+/**
+ * Turns the state of a table into chat messages. Every method takes the
+ * renderer to draw tiles with, because two players at the same table may be
+ * seeing different things depending on whether they loaded the resource pack.
+ */
 public final class TableView {
 
     private static final Component SEPARATOR =
@@ -31,31 +34,17 @@ public final class TableView {
         return SEPARATOR;
     }
 
-    public static Component tile(Tile tile) {
-        NamedTextColor colour = switch (Tiles.suitOf(tile.kind())) {
-            case MAN -> NamedTextColor.RED;
-            case PIN -> NamedTextColor.AQUA;
-            case SOU -> NamedTextColor.GREEN;
-            case HONOR -> NamedTextColor.GOLD;
-        };
-        Component text = Component.text(Tiles.display(tile.kind()), colour);
-        if (tile.red()) {
-            text = text.decorate(TextDecoration.BOLD).color(NamedTextColor.LIGHT_PURPLE);
-        }
-        return text;
-    }
-
-    private static Component tiles(List<Tile> tiles) {
+    private static Component tiles(TileRenderer renderer, List<Tile> tiles) {
         TextComponent.Builder builder = Component.text();
         for (Tile tile : tiles) {
             builder.append(Component.text(" "));
-            builder.append(tile(tile));
+            builder.append(renderer.render(tile));
         }
         return builder.build();
     }
 
     /** The header line: round, honba, sticks and how much wall is left. */
-    public static Component header(RiichiGame game) {
+    public static Component header(TileRenderer renderer, RiichiGame game) {
         return Component.text()
                 .append(Component.text(game.roundName(), NamedTextColor.YELLOW))
                 .append(Component.text("  残り", NamedTextColor.GRAY))
@@ -63,12 +52,12 @@ public final class TableView {
                 .append(Component.text("枚  供託", NamedTextColor.GRAY))
                 .append(Component.text(game.riichiSticks(), NamedTextColor.WHITE))
                 .append(Component.text("  ドラ", NamedTextColor.GRAY))
-                .append(tiles(game.doraIndicators()))
+                .append(tiles(renderer, game.doraIndicators()))
                 .build();
     }
 
     /** One line per seat: wind, name, score and the tiles they have shown. */
-    public static Component seats(RiichiGame game, Table table) {
+    public static Component seats(TileRenderer renderer, RiichiGame game, Table table) {
         TextComponent.Builder builder = Component.text();
         for (int seat = 0; seat < RiichiGame.SEATS; seat++) {
             SeatState state = game.seat(seat);
@@ -83,54 +72,66 @@ public final class TableView {
                 builder.append(Component.text(" 立直", NamedTextColor.RED));
             }
             for (Meld meld : state.hand().melds()) {
-                builder.append(Component.text(" ["));
-                builder.append(tiles(meld.tiles()));
-                builder.append(Component.text(" ]"));
+                builder.append(meldComponent(renderer, meld));
             }
         }
         return builder.build();
     }
 
+    /** A called group, with a closed kan wrapped in brackets. */
+    public static Component meldComponent(TileRenderer renderer, Meld meld) {
+        TextComponent.Builder builder = Component.text().append(Component.text("  "));
+        boolean concealed = meld.type() == com.majong.riichi.core.MeldType.ANKAN;
+        if (concealed) {
+            builder.append(Component.text("[", NamedTextColor.DARK_GRAY));
+        }
+        builder.append(tiles(renderer, meld.tiles()));
+        if (concealed) {
+            builder.append(Component.text(" ]", NamedTextColor.DARK_GRAY));
+        }
+        return builder.build();
+    }
+
     /** A player's own pond, most recent tile last. */
-    public static Component discards(RiichiGame game, int seat, Table table) {
+    public static Component discards(TileRenderer renderer, RiichiGame game, int seat, Table table) {
         return Component.text()
                 .append(Component.text(table.displayName(seat) + "の河", NamedTextColor.GRAY))
-                .append(tiles(game.seat(seat).discards()))
+                .append(tiles(renderer, game.seat(seat).discards()))
                 .build();
     }
 
     /**
-     * The player's own tiles, each one clickable to throw it. Tiles that would
-     * break a riichi hand are still shown so the player can see the whole hand.
+     * The player's own tiles, each one clickable to throw it. Tiles that cannot
+     * legally be discarded are dimmed rather than hidden, so the player still
+     * sees their whole hand.
      */
-    public static Component hand(RiichiGame game, int seat, List<Action> options) {
+    public static Component hand(TileRenderer renderer, RiichiGame game, int seat,
+                                 List<Action> options) {
         Hand hand = game.seat(seat).hand();
         TextComponent.Builder builder = Component.text()
                 .append(Component.text("手牌", NamedTextColor.GRAY));
         for (Tile tile : hand.concealed()) {
             builder.append(Component.text(" "));
-            builder.append(discardable(tile, options));
+            builder.append(discardable(renderer, tile, options));
         }
         if (hand.drawn() != null) {
             builder.append(Component.text("  ┃", NamedTextColor.DARK_GRAY));
             builder.append(Component.text(" "));
-            builder.append(discardable(hand.drawn(), options));
+            builder.append(discardable(renderer, hand.drawn(), options));
         }
         for (Meld meld : hand.melds()) {
-            builder.append(Component.text("  ["));
-            builder.append(tiles(meld.tiles()));
-            builder.append(Component.text(" ]"));
+            builder.append(meldComponent(renderer, meld));
         }
         return builder.build();
     }
 
-    private static Component discardable(Tile tile, List<Action> options) {
+    private static Component discardable(TileRenderer renderer, Tile tile, List<Action> options) {
+        Component text = renderer.render(tile);
         boolean legal = options.stream().anyMatch(action ->
                 action instanceof Action.Discard discard
                         && discard.tile().equals(tile) && !discard.riichi());
-        Component text = tile(tile);
         if (!legal) {
-            return text.color(NamedTextColor.DARK_GRAY);
+            return renderer.isGraphical() ? text : text.color(NamedTextColor.DARK_GRAY);
         }
         return text.clickEvent(ClickEvent.runCommand("/mj discard " + tile.notation()))
                 .hoverEvent(HoverEvent.showText(
@@ -185,7 +186,8 @@ public final class TableView {
     }
 
     /** How a hand ended, ready to broadcast to the table. */
-    public static Component result(RiichiGame game, Table table, HandResult result) {
+    public static Component result(TileRenderer renderer, RiichiGame game, Table table,
+                                   HandResult result) {
         TextComponent.Builder builder = Component.text().append(SEPARATOR).append(Component.newline());
         switch (result) {
             case HandResult.Won won -> {
@@ -197,6 +199,9 @@ public final class TableView {
                     builder.append(Component.text(" ← " + table.displayName(won.loser()),
                             NamedTextColor.GRAY));
                 }
+                builder.append(Component.newline());
+                builder.append(Component.text("  "));
+                builder.append(tiles(renderer, game.seat(won.winner()).hand().allConcealed()));
                 builder.append(Component.newline());
                 for (ScoredYaku yaku : value.yaku()) {
                     builder.append(Component.text("  " + yaku.display(), NamedTextColor.WHITE));

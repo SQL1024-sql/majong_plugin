@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -298,9 +299,14 @@ public final class Table implements GameListener {
         if (player == null) {
             return;
         }
+        TileRenderer renderer = plugin.rendererFor(player);
         List<Action> options = game.options(seat);
-        player.sendMessage(TableView.header(game));
-        player.sendMessage(TableView.hand(game, seat, options));
+        if (renderer.isGraphical()) {
+            // Drawn tiles are taller than a chat line, so give them room.
+            player.sendMessage(Component.empty());
+        }
+        player.sendMessage(TableView.header(renderer, game));
+        player.sendMessage(TableView.hand(renderer, game, seat, options));
         Component prompt = TableView.prompt(options);
         if (!Component.empty().equals(prompt)) {
             player.sendMessage(prompt);
@@ -361,13 +367,21 @@ public final class Table implements GameListener {
     }
 
     public void broadcast(Component message) {
+        broadcast(renderer -> message);
+    }
+
+    /**
+     * Sends a message built per recipient, since players at one table may be
+     * seeing drawn tiles or plain text depending on their resource pack.
+     */
+    public void broadcast(Function<TileRenderer, Component> message) {
         for (UUID uuid : players) {
             if (uuid == null) {
                 continue;
             }
             Player player = Bukkit.getPlayer(uuid);
             if (player != null) {
-                player.sendMessage(message);
+                player.sendMessage(message.apply(plugin.rendererFor(player)));
             }
         }
     }
@@ -377,26 +391,24 @@ public final class Table implements GameListener {
     @Override
     public void onHandStarted(RiichiGame game) {
         broadcast(TableView.separator());
-        broadcast(TableView.header(game));
-        broadcast(TableView.seats(game, this));
+        broadcast(renderer -> TableView.header(renderer, game));
+        broadcast(renderer -> TableView.seats(renderer, game, this));
     }
 
     @Override
     public void onDiscard(RiichiGame game, int seat, Tile tile, boolean riichi) {
-        Component message = Component.text()
+        broadcast(renderer -> Component.text()
                 .append(Component.text(displayName(seat) + " 打 ", NamedTextColor.GRAY))
-                .append(TableView.tile(tile))
+                .append(renderer.render(tile))
                 .append(riichi ? Component.text("  立直!", NamedTextColor.RED) : Component.empty())
-                .build();
-        broadcast(message);
+                .build());
     }
 
     @Override
     public void onCall(RiichiGame game, int seat, Meld meld) {
-        broadcast(Component.text()
-                .append(Component.text(displayName(seat) + " " + callName(meld) + " ",
-                        NamedTextColor.AQUA))
-                .append(Component.text(meld.display(), NamedTextColor.WHITE))
+        broadcast(renderer -> Component.text()
+                .append(Component.text(displayName(seat) + " " + callName(meld), NamedTextColor.AQUA))
+                .append(TableView.meldComponent(renderer, meld))
                 .build());
     }
 
@@ -412,14 +424,14 @@ public final class Table implements GameListener {
 
     @Override
     public void onDoraRevealed(RiichiGame game, Tile indicator) {
-        broadcast(Component.text()
+        broadcast(renderer -> Component.text()
                 .append(Component.text("新ドラ表示 ", NamedTextColor.GOLD))
-                .append(TableView.tile(indicator))
+                .append(renderer.render(indicator))
                 .build());
     }
 
     @Override
     public void onHandFinished(RiichiGame game, HandResult result) {
-        broadcast(TableView.result(game, this, result));
+        broadcast(renderer -> TableView.result(renderer, game, this, result));
     }
 }

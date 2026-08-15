@@ -20,7 +20,7 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUBCOMMANDS = List.of(
             "help", "create", "join", "leave", "bots", "start", "list", "info", "hand",
-            "discard", "riichi", "tsumo", "ron", "pon", "chi", "kan", "pass", "kyuushu");
+            "discard", "riichi", "tsumo", "ron", "pon", "chi", "kan", "pass", "kyuushu", "style");
 
     private final MahjongPlugin plugin;
 
@@ -58,6 +58,7 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
             case "list" -> list(player);
             case "info" -> info(player);
             case "hand" -> hand(player);
+            case "style" -> style(player, args);
             case "discard" -> discard(player, args, false);
             case "riichi" -> discard(player, args, true);
             case "tsumo" -> submitSimple(player, new Action.Tsumo());
@@ -166,11 +167,29 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
             return;
         }
         RiichiGame game = table.game();
-        player.sendMessage(TableView.header(game));
-        player.sendMessage(TableView.seats(game, table));
+        TileRenderer renderer = plugin.rendererFor(player);
+        player.sendMessage(TableView.header(renderer, game));
+        player.sendMessage(TableView.seats(renderer, game, table));
         for (int seat = 0; seat < RiichiGame.SEATS; seat++) {
-            player.sendMessage(TableView.discards(game, seat, table));
+            player.sendMessage(TableView.discards(renderer, game, seat, table));
         }
+    }
+
+    /** Switches between drawn tiles and plain text for this player. */
+    private void style(Player player, String[] args) {
+        if (args.length > 1) {
+            TileRenderer.Style style = TileRenderer.Style.parse(args[1]);
+            plugin.setStyle(player, style);
+        }
+        TileRenderer.Style style = plugin.styleFor(player);
+        player.sendMessage(info("牌面顯示：" + style.display()
+                + "（實際使用：" + (plugin.rendererFor(player).isGraphical() ? "牌圖" : "文字") + "）"));
+        if (!plugin.hasResourcePack(player) && !plugin.isResourcePackConfigured()) {
+            player.sendMessage(Component.text(
+                    "  伺服器尚未設定資源包網址，牌圖無法顯示，請管理員參考 README。",
+                    NamedTextColor.GRAY));
+        }
+        player.sendMessage(Component.text("  用法：/mj style auto|tiles|text", NamedTextColor.GRAY));
     }
 
     private void hand(Player player) {
@@ -184,7 +203,8 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
             return;
         }
         List<Action> options = table.game().options(seat);
-        player.sendMessage(TableView.hand(table.game(), seat, options));
+        TileRenderer renderer = plugin.rendererFor(player);
+        player.sendMessage(TableView.hand(renderer, table.game(), seat, options));
         player.sendMessage(TableView.prompt(options));
     }
 
@@ -303,7 +323,8 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
             {"/mj tsumo | ron", "自摸 / 榮和"},
             {"/mj pon | chi <牌> <牌> | kan <牌>", "碰 / 吃 / 槓"},
             {"/mj pass", "跳過鳴牌"},
-            {"/mj kyuushu", "九種九牌流局"}
+            {"/mj kyuushu", "九種九牌流局"},
+            {"/mj style <auto|tiles|text>", "切換牌圖或文字顯示"}
         };
         for (String[] line : lines) {
             player.sendMessage(Component.text()
@@ -337,6 +358,9 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
         String sub = args[0].toLowerCase(Locale.ROOT);
         if (args.length == 2 && sub.equals("join")) {
             return prefixed(plugin.tables().names(), args[1]);
+        }
+        if (args.length == 2 && sub.equals("style")) {
+            return prefixed(List.of("auto", "tiles", "text"), args[1]);
         }
         if (args.length >= 2 && (sub.equals("discard") || sub.equals("riichi")
                 || sub.equals("kan") || sub.equals("chi"))) {
