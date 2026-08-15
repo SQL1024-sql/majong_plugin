@@ -42,6 +42,7 @@ mvn package
 | `/mj info` | 看場況、各家分數與牌河 |
 | `/mj list` / `/mj leave` | 列出牌桌 / 離桌 |
 | `/mj style <auto\|tiles\|text>` | 切換牌圖或文字顯示 |
+| `/mj preview [clear]` | 在世界裡放測試用的立體牌（開發中） |
 
 牌的寫法：`1m`–`9m` 萬子、`1p`–`9p` 筒子、`1s`–`9s` 索子、
 `1z`–`7z` 東南西北白發中、`0m`/`0p`/`0s` 赤五。
@@ -73,13 +74,24 @@ mvn package
 tile-graphics: auto
 resource-pack:
   url: 'https://example.com/majong-tiles.zip'
-  sha1: '31795617e3fff968082a6f40c66efa7215d0ee7d'
+  sha1: '<照 log 印出來的那串填>'
   required: false
 ```
 
 玩家進伺服器時就會收到資源包詢問，接受後自動切成牌圖。不想用外掛推送的話，
 也可以把它併進伺服器既有的資源包，或請玩家自己丟進 `resourcepacks/`。
 `tile-graphics: text` 可以整台伺服器關掉牌圖，個別玩家則用 `/mj style`。
+
+**只是想自己試一下**的話不用架站台：把 `majong-tiles.zip` 直接丟進 Minecraft 客戶端的
+`resourcepacks/` 資料夾，在遊戲的「選項 → 資源包」啟用就好。
+
+### 立體牌（開發中）
+
+資源包裡同時附了 38 個立體牌模型（`assets/majong/models/item/tile_*.json`，
+用 `minecraft:item_model` 元件選用），準備把牌桌做成世界裡看得到、點得到的實體，
+而不只是聊天欄。`/mj preview` 會在你面前放四排測試牌來校正模型的擺法與判定框。
+
+![立體牌面](docs/tiles3d.png)
 
 ## 設定
 

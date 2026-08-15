@@ -30,6 +30,7 @@ FONT_SIZE = 12
 
 # The resource pack format 26.1 ships with; the range keeps neighbouring
 # versions from complaining that the pack is out of date.
+MANIFEST = "manifest.txt"
 PACK_FORMAT = 84
 PACK_FORMAT_MIN = 32
 PACK_FORMAT_MAX = 120
@@ -66,6 +67,15 @@ PIP_LAYOUT = {
     9: [(0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1), (0, 2), (1, 2), (2, 2)],
 }
 
+# The three dimensional tiles are drawn bigger, on a face with no border of
+# its own since the model gives them their edges.
+FACE3D_W, FACE3D_H = 24, 32
+FACE3D_TEXTURE = 32
+FACE3D_FONT_SIZE = 20
+TILE_BACK = (44, 62, 140, 255)
+TILE_BACK_EDGE = (28, 40, 96, 255)
+TILE_SIDE = (232, 224, 204, 255)
+
 NUMERALS = "一二三四五六七八九"
 HONOURS = "東南西北白發中"
 HONOUR_COLOURS = [WIND, WIND, WIND, WIND, HAKU, HATSU, CHUN]
@@ -79,6 +89,19 @@ def load_font():
 
 
 FONT, FONT_USED = load_font()
+FONT_3D = ImageFont.truetype(FONT_USED, FACE3D_FONT_SIZE)
+
+
+def stamp(img, char, colour, font, box):
+    """Stamps a character with no antialiasing, centred in the given box."""
+    mask = Image.new("1", (FACE3D_TEXTURE * 2, FACE3D_TEXTURE * 2), 0)
+    ImageDraw.Draw(mask).text((6, 6), char, font=font, fill=1)
+    bounds = mask.getbbox()
+    if bounds is None:
+        raise SystemExit(f"the font has no glyph for {char}")
+    ink = mask.crop(bounds)
+    x, y, width, height = box
+    img.paste(colour, (x + (width - ink.width) // 2, y + (height - ink.height) // 2), ink)
 
 
 def blank_tile(aka=False):
@@ -183,6 +206,165 @@ def build_glyphs():
     return glyphs
 
 
+# ---------------------------------------------------------------- 3D tiles
+
+# The face texture must be square or the game reads it as an animation, so the
+# 24x32 face is padded out to 32x32 and the model's UVs pick the middle out.
+FACE3D_X = (FACE3D_TEXTURE - FACE3D_W) // 2
+ART3D = (FACE3D_X + 2, 2, FACE3D_W - 4, FACE3D_H - 4)
+
+
+def face3d_blank(aka=False):
+    img = Image.new("RGBA", (FACE3D_TEXTURE, FACE3D_TEXTURE), CLEAR)
+    ImageDraw.Draw(img).rectangle(
+        [FACE3D_X, 0, FACE3D_X + FACE3D_W - 1, FACE3D_H - 1],
+        fill=FACE_AKA if aka else FACE)
+    return img
+
+
+def face3d_man(rank, aka=False):
+    img = face3d_blank(aka)
+    stamp(img, NUMERALS[rank - 1], AKA if aka else MAN, FONT_3D, ART3D)
+    return img
+
+
+def face3d_pin(rank, aka=False):
+    img = face3d_blank(aka)
+    x0, y0, width, height = ART3D
+    draw = ImageDraw.Draw(img)
+    if rank == 1:
+        size = 13
+        x = x0 + (width - size) // 2
+        y = y0 + (height - size) // 2
+        draw.ellipse([x, y, x + size - 1, y + size - 1], fill=PIN)
+        draw.ellipse([x + 4, y + 4, x + size - 5, y + size - 5], fill=PIN_CENTRE)
+        return img
+    size, pitch_x, pitch_y = 5, 7, 8
+    for col, row in PIP_LAYOUT[rank]:
+        x = x0 + (width - (2 * pitch_x + size)) // 2 + col * pitch_x
+        y = y0 + (height - (2 * pitch_y + size)) // 2 + row * pitch_y
+        draw.ellipse([x, y, x + size - 1, y + size - 1], fill=AKA if aka else PIN)
+    return img
+
+
+def face3d_sou(rank, aka=False):
+    img = face3d_blank(aka)
+    x0, y0, width, height = ART3D
+    draw = ImageDraw.Draw(img)
+    colour = AKA if aka else SOU
+    face = FACE_AKA if aka else FACE
+    if rank == 1:
+        x = x0 + (width - 4) // 2
+        draw.rectangle([x, y0 + 3, x + 3, y0 + height - 4], fill=colour)
+        draw.rectangle([x, y0 + height // 2 - 1, x + 3, y0 + height // 2], fill=face)
+        return img
+    stick_w, stick_h, pitch_x, pitch_y = 4, 7, 7, 9
+    for col, row in PIP_LAYOUT[rank]:
+        x = x0 + (width - (2 * pitch_x + stick_w)) // 2 + col * pitch_x
+        y = y0 + (height - (2 * pitch_y + stick_h)) // 2 + row * pitch_y
+        draw.rectangle([x, y, x + stick_w - 1, y + stick_h - 1], fill=colour)
+        draw.rectangle([x + 1, y + stick_h // 2, x + stick_w - 2, y + stick_h // 2], fill=face)
+    return img
+
+
+def face3d_honour(index):
+    img = face3d_blank()
+    if HONOURS[index] == "白":
+        x0, y0, width, height = ART3D
+        ImageDraw.Draw(img).rectangle(
+            [x0 + 1, y0 + 1, x0 + width - 2, y0 + height - 2],
+            outline=HONOUR_COLOURS[index], width=2)
+        return img
+    stamp(img, HONOURS[index], HONOUR_COLOURS[index], FONT_3D, ART3D)
+    return img
+
+
+def face3d_back():
+    """The blue back an opponent's concealed tile shows."""
+    img = Image.new("RGBA", (FACE3D_TEXTURE, FACE3D_TEXTURE), CLEAR)
+    draw = ImageDraw.Draw(img)
+    draw.rectangle([FACE3D_X, 0, FACE3D_X + FACE3D_W - 1, FACE3D_H - 1], fill=TILE_BACK)
+    draw.rectangle([FACE3D_X + 2, 2, FACE3D_X + FACE3D_W - 3, FACE3D_H - 3],
+                   outline=TILE_BACK_EDGE)
+    return img
+
+
+def face3d_side():
+    img = Image.new("RGBA", (FACE3D_TEXTURE, FACE3D_TEXTURE), TILE_SIDE)
+    return img
+
+
+def build_faces():
+    faces = []
+    for rank in range(1, 10):
+        faces.append((f"{rank}m", face3d_man(rank)))
+    for rank in range(1, 10):
+        faces.append((f"{rank}p", face3d_pin(rank)))
+    for rank in range(1, 10):
+        faces.append((f"{rank}s", face3d_sou(rank)))
+    for index in range(7):
+        faces.append((f"{index + 1}z", face3d_honour(index)))
+    faces.append(("0m", face3d_man(5, True)))
+    faces.append(("0p", face3d_pin(5, True)))
+    faces.append(("0s", face3d_sou(5, True)))
+    return faces
+
+
+def tile_geometry(face_texture):
+    """A tile standing upright: six wide, eight tall, four deep, centred."""
+    return {
+        "textures": {
+            "face": f"majong:item/tile/{face_texture}",
+            "side": "majong:item/tile/side",
+            "back": "majong:item/tile/back",
+        },
+        "elements": [{
+            "from": [5, 4, 6],
+            "to": [11, 12, 10],
+            "faces": {
+                "south": {"uv": [2, 0, 14, 16], "texture": "#face"},
+                "north": {"uv": [2, 0, 14, 16], "texture": "#back"},
+                "east": {"uv": [0, 0, 16, 16], "texture": "#side"},
+                "west": {"uv": [0, 0, 16, 16], "texture": "#side"},
+                "up": {"uv": [0, 0, 16, 16], "texture": "#side"},
+                "down": {"uv": [0, 0, 16, 16], "texture": "#side"},
+            },
+        }],
+    }
+
+
+def write_json(path, data):
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(data, handle, indent=2)
+        handle.write("\n")
+
+
+def write_tile_models(pack, faces):
+    """Emits the geometry, the item definitions and the face textures."""
+    textures = f"{pack}/assets/majong/textures/item/tile"
+    models = f"{pack}/assets/majong/models/item"
+    items = f"{pack}/assets/majong/items"
+    for directory in (textures, models, items):
+        os.makedirs(directory, exist_ok=True)
+
+    write_png(f"{textures}/side.png", face3d_side())
+    write_png(f"{textures}/back.png", face3d_back())
+
+    for name, image in faces:
+        write_png(f"{textures}/face_{name}.png", image)
+        write_json(f"{models}/tile_{name}.json", tile_geometry(f"face_{name}"))
+        write_json(f"{items}/tile_{name}.json",
+                   {"model": {"type": "minecraft:model", "model": f"majong:item/tile_{name}"}})
+
+    # The back of a tile, for hands an opponent has not shown.
+    back = tile_geometry("back")
+    back["elements"][0]["faces"]["south"]["texture"] = "#back"
+    write_json(f"{models}/tile_back.json", back)
+    write_json(f"{items}/tile_back.json",
+               {"model": {"type": "minecraft:model", "model": "majong:item/tile_back"}})
+    return len(faces) + 1
+
+
 def write_png(path, image):
     """Writes a PNG without the timestamp chunk so rebuilds stay reproducible."""
     width, height = image.size
@@ -262,7 +444,28 @@ def main():
         row.alpha_composite(by_name[name], (4 + index * (CELL_W + 1), 3))
     write_png("docs/hand.png", row.resize((row.width * 4, row.height * 4), Image.NEAREST))
 
+    faces = build_faces()
+    model_count = write_tile_models(pack, faces)
+
+    strip = Image.new("RGBA", (FACE3D_TEXTURE * 12, FACE3D_TEXTURE), (28, 28, 32, 255))
+    for index, (_, image) in enumerate(faces[:12]):
+        strip.alpha_composite(image, (index * FACE3D_TEXTURE, 0))
+    write_png("docs/tiles3d.png", strip.resize((strip.width * 3, strip.height * 3), Image.NEAREST))
+
+    # The plugin zips the pack at runtime and needs to know what is in it.
+    entries = []
+    for root, _, names in os.walk(pack):
+        for name in names:
+            if name == MANIFEST:
+                continue
+            entries.append(os.path.relpath(os.path.join(root, name), pack).replace(os.sep, "/"))
+    entries.sort()
+    with open(f"{pack}/{MANIFEST}", "w", encoding="utf-8") as handle:
+        handle.write("\n".join(entries) + "\n")
+
     print(f"font: {FONT_USED}")
+    print(f"pack: {len(entries)} files listed in {MANIFEST}")
+    print(f"models: {model_count} item models at 24x32 on a 32x32 texture")
     print(f"atlas: {atlas.size[0]}x{atlas.size[1]}, {len(glyphs)} glyphs, "
           f"U+{FIRST_CODEPOINT:04X}..U+{FIRST_CODEPOINT + len(glyphs) - 1:04X}")
 

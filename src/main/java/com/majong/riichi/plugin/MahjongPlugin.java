@@ -2,6 +2,7 @@ package com.majong.riichi.plugin;
 
 import com.majong.riichi.core.Tiles;
 import com.majong.riichi.game.GameRules;
+import com.majong.riichi.plugin.scene.TilePreview;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -25,6 +26,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 public final class MahjongPlugin extends JavaPlugin implements Listener {
 
     private TableManager tables;
+    private TilePreview preview;
     private GameRules rules;
     private int turnTimeoutTicks = 20 * 30;
     private int botDelayTicks = 12;
@@ -43,6 +45,7 @@ public final class MahjongPlugin extends JavaPlugin implements Listener {
         saveDefaultConfig();
         readSettings();
         tables = new TableManager(this);
+        preview = new TilePreview(this);
         exportResourcePack();
 
         PluginCommand command = getCommand("mahjong");
@@ -55,6 +58,7 @@ public final class MahjongPlugin extends JavaPlugin implements Listener {
         command.setExecutor(executor);
         command.setTabCompleter(executor);
         getServer().getPluginManager().registerEvents(this, this);
+        getServer().getPluginManager().registerEvents(preview, this);
         getSLF4JLogger().info("Riichi mahjong ready; type /mj help to sit down.");
     }
 
@@ -62,6 +66,9 @@ public final class MahjongPlugin extends JavaPlugin implements Listener {
     public void onDisable() {
         if (tables != null) {
             tables.shutdownAll();
+        }
+        if (preview != null) {
+            preview.clearAll();
         }
     }
 
@@ -112,6 +119,10 @@ public final class MahjongPlugin extends JavaPlugin implements Listener {
 
     public GameRules rules() {
         return rules;
+    }
+
+    public TilePreview preview() {
+        return preview;
     }
 
     public int turnTimeoutTicks() {

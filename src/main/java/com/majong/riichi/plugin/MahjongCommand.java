@@ -20,7 +20,8 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUBCOMMANDS = List.of(
             "help", "create", "join", "leave", "bots", "start", "list", "info", "hand",
-            "discard", "riichi", "tsumo", "ron", "pon", "chi", "kan", "pass", "kyuushu", "style");
+            "discard", "riichi", "tsumo", "ron", "pon", "chi", "kan", "pass", "kyuushu", "style",
+            "preview");
 
     private final MahjongPlugin plugin;
 
@@ -59,6 +60,7 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
             case "info" -> info(player);
             case "hand" -> hand(player);
             case "style" -> style(player, args);
+            case "preview" -> preview(player, args);
             case "discard" -> discard(player, args, false);
             case "riichi" -> discard(player, args, true);
             case "tsumo" -> submitSimple(player, new Action.Tsumo());
@@ -190,6 +192,24 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
                     NamedTextColor.GRAY));
         }
         player.sendMessage(Component.text("  用法：/mj style auto|tiles|text", NamedTextColor.GRAY));
+    }
+
+    /** Puts sample tiles in the world so their models can be checked by eye. */
+    private void preview(Player player, String[] args) {
+        if (args.length > 1 && args[1].equalsIgnoreCase("clear")) {
+            plugin.preview().clear(player);
+            player.sendMessage(info("已清除預覽牌。"));
+            return;
+        }
+        plugin.preview().show(player);
+        player.sendMessage(info("已在你面前放上四排測試牌，每排用不同的擺法。"));
+        player.sendMessage(Component.text(
+                "  右鍵點牌會回報點到哪一張。看完用 /mj preview clear 收掉。",
+                NamedTextColor.GRAY));
+        if (!plugin.rendererFor(player).isGraphical() && !plugin.hasResourcePack(player)) {
+            player.sendMessage(Component.text(
+                    "  你還沒載入資源包，會看到白紙而不是牌。", NamedTextColor.RED));
+        }
     }
 
     private void hand(Player player) {
@@ -324,7 +344,8 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
             {"/mj pon | chi <牌> <牌> | kan <牌>", "碰 / 吃 / 槓"},
             {"/mj pass", "跳過鳴牌"},
             {"/mj kyuushu", "九種九牌流局"},
-            {"/mj style <auto|tiles|text>", "切換牌圖或文字顯示"}
+            {"/mj style <auto|tiles|text>", "切換牌圖或文字顯示"},
+            {"/mj preview [clear]", "在世界裡放測試用的立體牌"}
         };
         for (String[] line : lines) {
             player.sendMessage(Component.text()
@@ -361,6 +382,9 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length == 2 && sub.equals("style")) {
             return prefixed(List.of("auto", "tiles", "text"), args[1]);
+        }
+        if (args.length == 2 && sub.equals("preview")) {
+            return prefixed(List.of("clear"), args[1]);
         }
         if (args.length >= 2 && (sub.equals("discard") || sub.equals("riichi")
                 || sub.equals("kan") || sub.equals("chi"))) {

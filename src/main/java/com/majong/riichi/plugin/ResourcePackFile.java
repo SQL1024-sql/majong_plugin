@@ -1,8 +1,12 @@
 package com.majong.riichi.plugin;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
@@ -21,12 +25,8 @@ final class ResourcePackFile {
 
     static final String FILE_NAME = "majong-tiles.zip";
 
-    /** The files that make up the pack, as they are laid out inside the jar. */
-    private static final List<String> ENTRIES = List.of(
-            "pack.mcmeta",
-            "pack.png",
-            "assets/majong/font/tiles.json",
-            "assets/majong/textures/font/tiles.png");
+    /** Lists the pack's files; written by tools/generate_tiles.py. */
+    private static final String MANIFEST = "resourcepack/manifest.txt";
 
     /** A fixed timestamp keeps the zip, and so its hash, stable across rebuilds. */
     private static final long FIXED_TIME = 0L;
@@ -38,9 +38,10 @@ final class ResourcePackFile {
     static Path write(MahjongPlugin plugin) throws IOException {
         Path target = plugin.getDataFolder().toPath().resolve(FILE_NAME);
         Files.createDirectories(target.getParent());
+        List<String> entries = readManifest(plugin);
         try (OutputStream out = Files.newOutputStream(target);
              ZipOutputStream zip = new ZipOutputStream(out)) {
-            for (String entry : ENTRIES) {
+            for (String entry : entries) {
                 try (InputStream source = plugin.getResource("resourcepack/" + entry)) {
                     if (source == null) {
                         throw new IOException("the jar is missing resourcepack/" + entry);
@@ -54,6 +55,29 @@ final class ResourcePackFile {
             }
         }
         return target;
+    }
+
+    /** Reads the list of files the pack is made of out of the jar. */
+    private static List<String> readManifest(MahjongPlugin plugin) throws IOException {
+        try (InputStream source = plugin.getResource(MANIFEST)) {
+            if (source == null) {
+                throw new IOException("the jar is missing " + MANIFEST);
+            }
+            List<String> entries = new ArrayList<>();
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(source, StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (!line.isBlank()) {
+                        entries.add(line.trim());
+                    }
+                }
+            }
+            if (entries.isEmpty()) {
+                throw new IOException(MANIFEST + " is empty");
+            }
+            return entries;
+        }
     }
 
     /** The hash the client checks a downloaded pack against. */
