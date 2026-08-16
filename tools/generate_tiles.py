@@ -80,6 +80,9 @@ TILE_SIDE = (232, 224, 204, 255)
 
 NUMERALS = "一二三四五六七八九"
 HONOURS = "東南西北白發中"
+# The eight flowers a taiwanese set adds: seasons then plants.
+FLOWERS = "春夏秋冬梅蘭菊竹"
+FLOWER_COLOURS = [AKA, AKA, AKA, AKA, SOU, SOU, SOU, SOU]
 HONOUR_COLOURS = [WIND, WIND, WIND, WIND, HAKU, HATSU, CHUN]
 
 
@@ -100,6 +103,10 @@ def load_font():
 
 FONT, FONT_USED = load_font()
 FONT_3D = ImageFont.truetype(FONT_USED, FACE3D_FONT_SIZE)
+FONT_MAN = ImageFont.truetype(FONT_USED, 15)
+FONT_MAN_SMALL = ImageFont.truetype(FONT_USED, 12)
+FONT_FLOWER = ImageFont.truetype(FONT_USED, 17)
+FONT_FLOWER_SMALL = ImageFont.truetype(FONT_USED, 10)
 
 
 def stamp(img, char, colour, font, box):
@@ -184,7 +191,18 @@ def sou_tile(rank, aka=False):
         return img
     for col, row in PIP_LAYOUT[rank]:
         x, y = pip_origin(col, row, 2, 4, 5)
-        ImageDraw.Draw(img).rectangle([x, y, x + 1, y + 3], fill=AKA if aka else SOU)
+        middle = rank == 5 and col == 1 and row == 1
+        colour = AKA if aka else (AKA if middle else SOU)
+        draw = ImageDraw.Draw(img)
+        draw.rectangle([x, y, x + 1, y + 3], fill=colour)
+        # One lighter row is all the segmenting that fits at this size.
+        draw.rectangle([x, y + 2, x + 1, y + 2], fill=FACE_AKA if aka else FACE)
+    return img
+
+
+def flower_glyph(index):
+    img = blank_tile()
+    draw_character(img, FLOWERS[index], FLOWER_COLOURS[index])
     return img
 
 
@@ -213,6 +231,8 @@ def build_glyphs():
     glyphs.append(("0m", man_tile(5, True)))
     glyphs.append(("0p", pin_tile(5, True)))
     glyphs.append(("0s", sou_tile(5, True)))
+    for index in range(8):
+        glyphs.append((f"f{index + 1}", flower_glyph(index)))
     return glyphs
 
 
@@ -232,9 +252,41 @@ def face3d_blank(aka=False):
     return img
 
 
+# Real tiles stack the numeral over the character for ten thousand, and there
+# is just enough room for both once the numeral leads.
+MAN_SPLIT = 17
+
+
 def face3d_man(rank, aka=False):
     img = face3d_blank(aka)
-    stamp(img, NUMERALS[rank - 1], AKA if aka else MAN, FONT_3D, ART3D)
+    colour = AKA if aka else MAN
+    x0, y0, width, _ = ART3D
+    stamp(img, NUMERALS[rank - 1], colour, FONT_MAN, (x0, 1, width, MAN_SPLIT))
+    stamp(img, "萬", colour, FONT_MAN_SMALL, (x0, 1 + MAN_SPLIT, width, 30 - MAN_SPLIT))
+    return img
+
+
+def face3d_bird(aka=False):
+    """The bird that stands in for a single bamboo."""
+    img = face3d_blank(aka)
+    draw = ImageDraw.Draw(img)
+    body = AKA if aka else SOU
+    draw.ellipse([12, 12, 20, 23], fill=body)
+    draw.ellipse([13, 6, 19, 13], fill=body)
+    draw.polygon([(19, 9), (23, 10), (19, 12)], fill=AKA)
+    draw.polygon([(13, 21), (10, 28), (17, 25)], fill=body)
+    draw.line([(15, 24), (15, 28)], fill=AKA)
+    draw.line([(18, 24), (18, 28)], fill=AKA)
+    img.putpixel((16, 9), FACE_AKA if aka else FACE)
+    return img
+
+
+def face3d_flower(index):
+    img = face3d_blank()
+    colour = FLOWER_COLOURS[index]
+    x0, _, width, _ = ART3D
+    stamp(img, FLOWERS[index], colour, FONT_FLOWER, (x0, 2, width, 22))
+    stamp(img, "一二三四"[index % 4], colour, FONT_FLOWER_SMALL, (x0, 22, width, 9))
     return img
 
 
@@ -258,22 +310,23 @@ def face3d_pin(rank, aka=False):
 
 
 def face3d_sou(rank, aka=False):
+    if rank == 1:
+        return face3d_bird(aka)
     img = face3d_blank(aka)
     x0, y0, width, height = ART3D
     draw = ImageDraw.Draw(img)
-    colour = AKA if aka else SOU
     face = FACE_AKA if aka else FACE
-    if rank == 1:
-        x = x0 + (width - 4) // 2
-        draw.rectangle([x, y0 + 3, x + 3, y0 + height - 4], fill=colour)
-        draw.rectangle([x, y0 + height // 2 - 1, x + 3, y0 + height // 2], fill=face)
-        return img
     stick_w, stick_h, pitch_x, pitch_y = 4, 7, 7, 9
-    for col, row in PIP_LAYOUT[rank]:
+    slots = PIP_LAYOUT[rank]
+    for index, (col, row) in enumerate(slots):
         x = x0 + (width - (2 * pitch_x + stick_w)) // 2 + col * pitch_x
         y = y0 + (height - (2 * pitch_y + stick_h)) // 2 + row * pitch_y
+        # A five keeps its middle stalk red, the way a printed set does.
+        middle = rank == 5 and col == 1 and row == 1
+        colour = AKA if aka else (AKA if middle else SOU)
         draw.rectangle([x, y, x + stick_w - 1, y + stick_h - 1], fill=colour)
-        draw.rectangle([x + 1, y + stick_h // 2, x + stick_w - 2, y + stick_h // 2], fill=face)
+        for band in (stick_h // 3, 2 * stick_h // 3):
+            draw.rectangle([x, y + band, x + stick_w - 1, y + band], fill=face)
     return img
 
 
@@ -317,6 +370,8 @@ def build_faces():
     faces.append(("0m", face3d_man(5, True)))
     faces.append(("0p", face3d_pin(5, True)))
     faces.append(("0s", face3d_sou(5, True)))
+    for index in range(8):
+        faces.append((f"f{index + 1}", face3d_flower(index)))
     return faces
 
 
