@@ -69,7 +69,31 @@ public final class TableScene {
         return anchor == null ? null : anchor.clone();
     }
 
-    /** Places the table, using the given yaw as the direction the first seat faces. */
+    /**
+     * The gap between the player and their own row of tiles, on top of the
+     * radius, so the hand sits within reach rather than underfoot.
+     */
+    private static final double REACH = 0.7;
+
+    /**
+     * Places the table in front of the given player, with the first seat between
+     * them and the middle so their own tiles face back at them.
+     */
+    public void placeFor(Location viewer) {
+        Vector forward = viewer.getDirection().setY(0);
+        if (forward.lengthSquared() < 1.0e-6) {
+            forward = new Vector(0, 0, 1);
+        }
+        forward.normalize();
+        Location centre = viewer.clone().add(forward.multiply(radius + REACH));
+        // The anchor yaw points from the middle out towards the first seat, which
+        // is the opposite of the way the player is looking.
+        centre.setYaw(viewer.getYaw() + 180f);
+        centre.setPitch(0f);
+        setAnchor(centre);
+    }
+
+    /** Places the table around the given middle point. */
     public void setAnchor(Location location) {
         clear();
         this.anchor = location.clone();

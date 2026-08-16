@@ -66,9 +66,9 @@ public final class Table implements GameListener {
         return scene;
     }
 
-    /** Puts the table down at the given spot and redraws it. */
-    public void placeAt(Location location) {
-        scene.setAnchor(location);
+    /** Puts the table down in front of the given player and redraws it. */
+    public void placeAt(Location viewer) {
+        scene.placeFor(viewer);
         refreshScene();
     }
 
@@ -202,7 +202,7 @@ public final class Table implements GameListener {
         if (!scene.isPlaced()) {
             Player host = Bukkit.getPlayer(owner);
             if (host != null) {
-                scene.setAnchor(host.getLocation());
+                scene.placeFor(host.getLocation());
             }
         }
         game.startHand();
