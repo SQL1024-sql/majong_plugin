@@ -28,6 +28,17 @@ resource-pack:
   # Kick players who refuse the pack. Only worth turning on for a mahjong server.
   required: false
 
+# The table drawn in the world: tiles standing where the game is played.
+# A player sees their own hand face up and everybody else's backs.
+table:
+  enabled: true
+  # How far each seat sits from the middle of the table, in blocks.
+  radius: 0.9
+  # How high the tiles stand above the point the table was placed at.
+  height: 0.9
+  tile-scale: 0.5
+  tile-spacing: 0.22
+
 rules:
   # hanchan plays east and south rounds, tonpuusen only east.
   game-length: hanchan

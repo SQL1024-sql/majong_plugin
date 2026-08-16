@@ -8,6 +8,7 @@ import com.majong.riichi.game.GameListener;
 import com.majong.riichi.game.GameRules;
 import com.majong.riichi.game.HandResult;
 import com.majong.riichi.game.RiichiGame;
+import com.majong.riichi.plugin.scene.TableScene;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -19,6 +20,7 @@ import java.util.function.Function;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -45,6 +47,7 @@ public final class Table implements GameListener {
 
     private RiichiGame game;
     private State state = State.LOBBY;
+    private final TableScene scene;
 
     private final Set<Integer> prompted = new HashSet<>();
     private final Map<Integer, BukkitTask> timeouts = new HashMap<>();
@@ -55,6 +58,24 @@ public final class Table implements GameListener {
         this.name = name;
         this.owner = owner.getUniqueId();
         players[0] = owner.getUniqueId();
+        this.scene = plugin.createScene();
+    }
+
+    /** The tiles standing in the world for this table, if it has been placed. */
+    public TableScene scene() {
+        return scene;
+    }
+
+    /** Puts the table down at the given spot and redraws it. */
+    public void placeAt(Location location) {
+        scene.setAnchor(location);
+        refreshScene();
+    }
+
+    private void refreshScene() {
+        if (state == State.PLAYING && game != null && scene.isPlaced()) {
+            scene.refresh(game, players.clone());
+        }
     }
 
     // ----------------------------------------------------------------- seats
@@ -178,6 +199,12 @@ public final class Table implements GameListener {
         }
         game = new RiichiGame(rules, names, System.nanoTime(), this);
         state = State.PLAYING;
+        if (!scene.isPlaced()) {
+            Player host = Bukkit.getPlayer(owner);
+            if (host != null) {
+                scene.setAnchor(host.getLocation());
+            }
+        }
         game.startHand();
         advance();
         return true;
@@ -191,6 +218,7 @@ public final class Table implements GameListener {
         }
         timeouts.clear();
         prompted.clear();
+        scene.clear();
         state = State.FINISHED;
     }
 
@@ -213,6 +241,7 @@ public final class Table implements GameListener {
         if (state != State.PLAYING) {
             return;
         }
+        refreshScene();
         if (game.isGameOver()) {
             broadcast(TableView.standings(game, this));
             shutdown();

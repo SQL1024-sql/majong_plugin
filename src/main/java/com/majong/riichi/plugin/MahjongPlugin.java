@@ -2,6 +2,7 @@ package com.majong.riichi.plugin;
 
 import com.majong.riichi.core.Tiles;
 import com.majong.riichi.game.GameRules;
+import com.majong.riichi.plugin.scene.TableScene;
 import com.majong.riichi.plugin.scene.TilePreview;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -30,6 +31,11 @@ public final class MahjongPlugin extends JavaPlugin implements Listener {
     private int turnTimeoutTicks = 20 * 30;
     private int botDelayTicks = 12;
     private int nextHandDelayTicks = 20 * 6;
+    private boolean tableScene = true;
+    private double tableRadius = 0.9;
+    private double tableHeight = 0.9;
+    private float tileScale = 0.5f;
+    private double tileSpacing = 0.22;
 
     /**
      * A fixed id for our pack. Servers may send several packs at once, and the
@@ -69,6 +75,7 @@ public final class MahjongPlugin extends JavaPlugin implements Listener {
         command.setTabCompleter(executor);
         getServer().getPluginManager().registerEvents(this, this);
         getServer().getPluginManager().registerEvents(preview, this);
+        getServer().getPluginManager().registerEvents(new TableInteractions(this), this);
         getSLF4JLogger().info("Riichi mahjong ready; type /mj help to sit down.");
     }
 
@@ -87,6 +94,12 @@ public final class MahjongPlugin extends JavaPlugin implements Listener {
         turnTimeoutTicks = 20 * Math.max(5, config.getInt("turn-timeout-seconds", 30));
         botDelayTicks = Math.max(1, config.getInt("bot-delay-ticks", 12));
         nextHandDelayTicks = 20 * Math.max(1, config.getInt("next-hand-delay-seconds", 6));
+
+        tableScene = config.getBoolean("table.enabled", true);
+        tableRadius = config.getDouble("table.radius", 0.9);
+        tableHeight = config.getDouble("table.height", 0.9);
+        tileScale = (float) config.getDouble("table.tile-scale", 0.5);
+        tileSpacing = config.getDouble("table.tile-spacing", 0.22);
 
         defaultStyle = TileRenderer.Style.parse(config.getString("tile-graphics", "auto"));
         packUrl = config.getString("resource-pack.url", "").trim();
@@ -142,6 +155,16 @@ public final class MahjongPlugin extends JavaPlugin implements Listener {
 
     public TilePreview preview() {
         return preview;
+    }
+
+    /** A renderer for one table, using the sizes from config.yml. */
+    public TableScene createScene() {
+        return new TableScene(this, tableRadius, tableHeight, tileScale, tileSpacing);
+    }
+
+    /** Whether tables should be drawn in the world at all. */
+    public boolean isTableSceneEnabled() {
+        return tableScene;
     }
 
     public int turnTimeoutTicks() {

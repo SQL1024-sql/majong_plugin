@@ -22,7 +22,7 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
     private static final List<String> SUBCOMMANDS = List.of(
             "help", "create", "join", "leave", "bots", "start", "list", "info", "hand",
             "discard", "riichi", "tsumo", "ron", "pon", "chi", "kan", "pass", "kyuushu", "style",
-            "preview");
+            "preview", "table");
 
     private final MahjongPlugin plugin;
 
@@ -62,6 +62,7 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
             case "hand" -> hand(player);
             case "style" -> style(player, args);
             case "preview" -> preview(player, args);
+            case "table" -> placeTable(player);
             case "discard" -> discard(player, args, false);
             case "riichi" -> discard(player, args, true);
             case "tsumo" -> submitSimple(player, new Action.Tsumo());
@@ -193,6 +194,22 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
                     NamedTextColor.GRAY));
         }
         player.sendMessage(Component.text("  用法：/mj style auto|tiles|text", NamedTextColor.GRAY));
+    }
+
+    /** Moves this table's tiles to where the player is standing. */
+    private void placeTable(Player player) {
+        Table table = requireTable(player);
+        if (table == null) {
+            return;
+        }
+        if (!plugin.isTableSceneEnabled()) {
+            player.sendMessage(error("設定裡的 table.enabled 是關的，牌桌不會顯示。"));
+            return;
+        }
+        table.placeAt(player.getLocation());
+        player.sendMessage(info("牌桌已放在你站的位置，面向你現在的方向。"));
+        player.sendMessage(Component.text(
+                "  你的手牌會出現在你這一家的位置，右鍵點牌就是打出去。", NamedTextColor.GRAY));
     }
 
     /** Puts sample tiles in the world so size and spacing can be judged by eye. */
@@ -368,7 +385,8 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
             {"/mj pass", "跳過鳴牌"},
             {"/mj kyuushu", "九種九牌流局"},
             {"/mj style <auto|tiles|text>", "切換牌圖或文字顯示"},
-            {"/mj preview [大小] [間距]", "在世界裡放測試用的立體牌"}
+            {"/mj preview [大小] [間距]", "在世界裡放測試用的立體牌"},
+            {"/mj table", "把牌桌放在你站的位置"}
         };
         for (String[] line : lines) {
             player.sendMessage(Component.text()
