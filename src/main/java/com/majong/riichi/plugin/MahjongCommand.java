@@ -4,6 +4,7 @@ import com.majong.riichi.core.Tile;
 import com.majong.riichi.core.Tiles;
 import com.majong.riichi.game.Action;
 import com.majong.riichi.game.RiichiGame;
+import com.majong.riichi.plugin.scene.TilePreview;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -194,18 +195,35 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
         player.sendMessage(Component.text("  用法：/mj style auto|tiles|text", NamedTextColor.GRAY));
     }
 
-    /** Puts sample tiles in the world so their models can be checked by eye. */
+    /** Puts sample tiles in the world so size and spacing can be judged by eye. */
     private void preview(Player player, String[] args) {
         if (args.length > 1 && args[1].equalsIgnoreCase("clear")) {
             plugin.preview().clear(player);
             player.sendMessage(info("已清除預覽牌。"));
             return;
         }
-        plugin.preview().show(player);
-        player.sendMessage(info("已在你面前放上四排測試牌，每排用不同的擺法。"));
+        float scale = TilePreview.DEFAULT_SCALE;
+        double spacing = TilePreview.DEFAULT_SPACING;
+        try {
+            if (args.length > 1) {
+                scale = Float.parseFloat(args[1]);
+            }
+            if (args.length > 2) {
+                spacing = Double.parseDouble(args[2]);
+            }
+        } catch (NumberFormatException exception) {
+            player.sendMessage(error("用法：/mj preview [大小] [間距]，例如 /mj preview 0.4 0.18"));
+            return;
+        }
+        if (scale <= 0 || scale > 4 || spacing <= 0 || spacing > 2) {
+            player.sendMessage(error("大小要在 0 到 4 之間，間距要在 0 到 2 之間。"));
+            return;
+        }
+        plugin.preview().show(player, scale, spacing);
+        player.sendMessage(info("測試手牌已放在你面前（大小 " + scale + "、間距 " + spacing + "）。"));
         player.sendMessage(Component.text(
-                "  右鍵點牌會回報點到哪一張。看完用 /mj preview clear 收掉。",
-                NamedTextColor.GRAY));
+                "  右鍵點牌會回報點到哪一張。想調整就再打一次 /mj preview <大小> <間距>，"
+                + "看完用 /mj preview clear 收掉。", NamedTextColor.GRAY));
         if (!plugin.rendererFor(player).isGraphical() && !plugin.hasResourcePack(player)) {
             player.sendMessage(Component.text(
                     "  你還沒載入資源包，會看到白紙而不是牌。", NamedTextColor.RED));
@@ -350,7 +368,7 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
             {"/mj pass", "跳過鳴牌"},
             {"/mj kyuushu", "九種九牌流局"},
             {"/mj style <auto|tiles|text>", "切換牌圖或文字顯示"},
-            {"/mj preview [clear]", "在世界裡放測試用的立體牌"}
+            {"/mj preview [大小] [間距]", "在世界裡放測試用的立體牌"}
         };
         for (String[] line : lines) {
             player.sendMessage(Component.text()
@@ -389,7 +407,7 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
             return prefixed(List.of("auto", "tiles", "text"), args[1]);
         }
         if (args.length == 2 && sub.equals("preview")) {
-            return prefixed(List.of("clear"), args[1]);
+            return prefixed(List.of("clear", "0.4", "0.5", "0.6"), args[1]);
         }
         if (args.length >= 2 && (sub.equals("discard") || sub.equals("riichi")
                 || sub.equals("kan") || sub.equals("chi"))) {
