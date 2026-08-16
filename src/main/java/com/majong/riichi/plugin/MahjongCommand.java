@@ -328,7 +328,12 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
 
     private void sendHelp(Player player) {
         player.sendMessage(TableView.separator());
-        player.sendMessage(Component.text("日本麻雀 指令", NamedTextColor.GOLD));
+        // The version is on the header so a screenshot says which build it came from.
+        player.sendMessage(Component.text()
+                .append(Component.text("日本麻雀 指令", NamedTextColor.GOLD))
+                .append(Component.text("  v" + plugin.getPluginMeta().getVersion(),
+                        NamedTextColor.DARK_GRAY))
+                .build());
         String[][] lines = {
             {"/mj create [桌名]", "開一張新桌"},
             {"/mj join [桌名]", "加入牌桌"},
