@@ -19,9 +19,12 @@ tile-graphics: auto
 # players can download it, then put the address and the hash printed in the
 # server log here. Leaving the address empty means the plugin never pushes a
 # pack, and players see coloured text unless they installed the pack themselves.
+# The pack is added alongside any others the server already sends, so an
+# existing pack keeps working; players see both stacked.
 resource-pack:
   url: ''
   sha1: ''
+  prompt: 麻雀の牌を表示するためのリソースパックです
   # Kick players who refuse the pack. Only worth turning on for a mahjong server.
   required: false
 

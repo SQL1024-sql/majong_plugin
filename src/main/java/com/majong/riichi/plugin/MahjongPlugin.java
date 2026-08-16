@@ -4,14 +4,13 @@ import com.majong.riichi.core.Tiles;
 import com.majong.riichi.game.GameRules;
 import com.majong.riichi.plugin.scene.TilePreview;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -32,10 +31,21 @@ public final class MahjongPlugin extends JavaPlugin implements Listener {
     private int botDelayTicks = 12;
     private int nextHandDelayTicks = 20 * 6;
 
+    /**
+     * A fixed id for our pack. Servers may send several packs at once, and the
+     * id is what keeps ours apart from everybody else's, both when sending it
+     * and when reading the status the client reports back.
+     */
+    private static final UUID PACK_ID =
+            UUID.nameUUIDFromBytes("majong-tiles".getBytes(StandardCharsets.UTF_8));
+    /** The client rejects a pack hash that is not exactly twenty bytes. */
+    private static final int SHA1_LENGTH = 20;
+
     private TileRenderer.Style defaultStyle = TileRenderer.Style.AUTO;
     private String packUrl = "";
     private byte[] packHash;
     private boolean packRequired;
+    private String packPrompt = "";
 
     private final Map<UUID, TileRenderer.Style> styleOverrides = new HashMap<>();
     private final Set<UUID> packLoaded = new HashSet<>();
@@ -79,9 +89,15 @@ public final class MahjongPlugin extends JavaPlugin implements Listener {
         nextHandDelayTicks = 20 * Math.max(1, config.getInt("next-hand-delay-seconds", 6));
 
         defaultStyle = TileRenderer.Style.parse(config.getString("tile-graphics", "auto"));
-        packUrl = config.getString("resource-pack.url", "");
-        packHash = ResourcePackFile.decodeHash(config.getString("resource-pack.sha1", ""));
+        packUrl = config.getString("resource-pack.url", "").trim();
         packRequired = config.getBoolean("resource-pack.required", false);
+        packPrompt = config.getString("resource-pack.prompt", "麻雀の牌を表示するためのリソースパックです");
+        packHash = ResourcePackFile.decodeHash(config.getString("resource-pack.sha1", ""));
+        if (packHash != null && packHash.length != SHA1_LENGTH) {
+            getSLF4JLogger().warn("resource-pack.sha1 is not a 40 character sha1; ignoring it. "
+                    + "Without it the client re-downloads the pack every time.");
+            packHash = null;
+        }
 
         boolean eastOnly = "tonpuusen".equalsIgnoreCase(config.getString("rules.game-length", "hanchan"));
         rules = new GameRules(
@@ -173,13 +189,17 @@ public final class MahjongPlugin extends JavaPlugin implements Listener {
         if (packUrl.isBlank()) {
             return;
         }
-        event.getPlayer().setResourcePack(packUrl, packHash,
-                Component.text("麻雀の牌を表示するためのリソースパックです", NamedTextColor.GOLD),
-                packRequired);
+        // Added rather than set: setting one switches the client to ours alone
+        // and would throw away whatever pack the server already sends.
+        event.getPlayer().addResourcePack(PACK_ID, packUrl, packHash, packPrompt, packRequired);
     }
 
     @EventHandler
     public void onResourcePackStatus(PlayerResourcePackStatusEvent event) {
+        if (!PACK_ID.equals(event.getID())) {
+            // Some other pack on the same client; none of our business.
+            return;
+        }
         UUID uuid = event.getPlayer().getUniqueId();
         if (event.getStatus() == PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED) {
             packLoaded.add(uuid);
