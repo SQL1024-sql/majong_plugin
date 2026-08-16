@@ -15,7 +15,7 @@
 mvn package
 ```
 
-產出 `target/MajongPlugin-1.0.0.jar`，丟進伺服器的 `plugins/` 重開即可。
+產出 `target/MajongPlugin-1.1.0.jar`，丟進伺服器的 `plugins/` 重開即可。
 
 ## 開一局
 
