@@ -80,6 +80,11 @@ final class ResourcePackFile {
         }
     }
 
+    /** How many files the pack should contain. */
+    static int entryCount(MahjongPlugin plugin) throws IOException {
+        return readManifest(plugin).size();
+    }
+
     /** The hash the client checks a downloaded pack against. */
     static String sha1(Path file) throws IOException {
         try {

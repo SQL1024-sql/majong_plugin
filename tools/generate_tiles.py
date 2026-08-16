@@ -12,6 +12,7 @@ tiles are drawn at.
 """
 import json
 import os
+import re
 import struct
 import zlib
 
@@ -28,9 +29,10 @@ FONT_CANDIDATES = [
 ]
 FONT_SIZE = 12
 
+MANIFEST = "manifest.txt"
+
 # The resource pack format 26.1 ships with; the range keeps neighbouring
 # versions from complaining that the pack is out of date.
-MANIFEST = "manifest.txt"
 PACK_FORMAT = 84
 PACK_FORMAT_MIN = 32
 PACK_FORMAT_MAX = 120
@@ -79,6 +81,14 @@ TILE_SIDE = (232, 224, 204, 255)
 NUMERALS = "一二三四五六七八九"
 HONOURS = "東南西北白發中"
 HONOUR_COLOURS = [WIND, WIND, WIND, WIND, HAKU, HATSU, CHUN]
+
+
+def project_version():
+    """Reads the plugin version from the pom so the pack can name itself."""
+    with open("pom.xml", encoding="utf-8") as handle:
+        pom = handle.read()
+    match = re.search(r"<artifactId>majong-plugin</artifactId>\s*<version>([^<]+)</version>", pom)
+    return match.group(1) if match else "unknown"
 
 
 def load_font():
@@ -419,7 +429,9 @@ def main():
             "pack_format": PACK_FORMAT,
             "supported_formats": {"min_inclusive": PACK_FORMAT_MIN,
                                   "max_inclusive": PACK_FORMAT_MAX},
-            "description": "Mahjong tiles for MajongPlugin",
+            # Shown in the client's resource pack list, which makes a stale
+            # pack obvious without digging through files.
+            "description": f"麻雀牌 MajongPlugin v{project_version()}",
         }}, handle, indent=2)
         handle.write("\n")
 

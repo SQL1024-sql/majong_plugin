@@ -116,8 +116,11 @@ public final class MahjongPlugin extends JavaPlugin implements Listener {
     private void exportResourcePack() {
         try {
             Path file = ResourcePackFile.write(this);
-            getSLF4JLogger().info("Tile resource pack written to {} (sha1 {})",
-                    file, ResourcePackFile.sha1(file));
+            // The size and count are here because the usual failure is a client
+            // still holding an older copy of the pack.
+            getSLF4JLogger().info("Tile resource pack written to {} ({} files, {} bytes, sha1 {})",
+                    file, ResourcePackFile.entryCount(this), java.nio.file.Files.size(file),
+                    ResourcePackFile.sha1(file));
         } catch (IOException exception) {
             getSLF4JLogger().warn("could not write the tile resource pack", exception);
         }
