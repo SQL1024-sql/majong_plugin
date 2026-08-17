@@ -1,9 +1,7 @@
 package com.majong.riichi.plugin;
 
 import com.majong.riichi.core.Hand;
-import com.majong.riichi.core.HandValue;
 import com.majong.riichi.core.Meld;
-import com.majong.riichi.core.ScoredYaku;
 import com.majong.riichi.core.Tile;
 import com.majong.riichi.core.Tiles;
 import com.majong.riichi.game.Action;
@@ -191,7 +189,6 @@ public final class TableView {
         TextComponent.Builder builder = Component.text().append(SEPARATOR).append(Component.newline());
         switch (result) {
             case HandResult.Won won -> {
-                HandValue value = won.value();
                 builder.append(Component.text(table.displayName(won.winner()), NamedTextColor.GOLD));
                 builder.append(Component.text(won.isTsumo() ? " ツモ和了" : " ロン和了",
                         NamedTextColor.YELLOW));
@@ -203,17 +200,11 @@ public final class TableView {
                 builder.append(Component.text("  "));
                 builder.append(tiles(renderer, game.seat(won.winner()).hand().allConcealed()));
                 builder.append(Component.newline());
-                for (ScoredYaku yaku : value.yaku()) {
-                    builder.append(Component.text("  " + yaku.display(), NamedTextColor.WHITE));
+                for (String line : won.lines()) {
+                    builder.append(Component.text("  " + line, NamedTextColor.WHITE));
                     builder.append(Component.newline());
                 }
-                if (value.dora() + value.uraDora() + value.redDora() > 0) {
-                    builder.append(Component.text("  ドラ" + value.dora()
-                            + " 裏ドラ" + value.uraDora() + " 赤" + value.redDora(),
-                            NamedTextColor.WHITE));
-                    builder.append(Component.newline());
-                }
-                builder.append(Component.text("  " + value.summary(), NamedTextColor.YELLOW));
+                builder.append(Component.text("  " + won.summary(), NamedTextColor.YELLOW));
             }
             case HandResult.ExhaustiveDraw draw -> {
                 builder.append(Component.text("荒牌平局", NamedTextColor.AQUA));

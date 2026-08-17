@@ -4,6 +4,7 @@ import com.majong.riichi.core.Tile;
 import com.majong.riichi.core.Tiles;
 import com.majong.riichi.game.Action;
 import com.majong.riichi.game.RiichiGame;
+import com.majong.riichi.game.Variant;
 import com.majong.riichi.plugin.scene.TilePreview;
 import java.util.ArrayList;
 import java.util.List;
@@ -52,7 +53,8 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
 
         String sub = args[0].toLowerCase(Locale.ROOT);
         switch (sub) {
-            case "create" -> create(player, args.length > 1 ? args[1] : player.getName());
+            case "create" -> create(player, args.length > 1 ? args[1] : player.getName(),
+                    Variant.parse(args.length > 2 ? args[2] : plugin.defaultVariant().name()));
             case "join" -> join(player, args.length > 1 ? args[1] : null);
             case "leave" -> leave(player);
             case "bots", "bot" -> addBots(player);
@@ -79,14 +81,14 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
 
     // ------------------------------------------------------------- lobbying
 
-    private void create(Player player, String name) {
-        Table table = plugin.tables().create(player, name);
+    private void create(Player player, String name, Variant variant) {
+        Table table = plugin.tables().create(player, name, variant);
         if (table == null) {
             player.sendMessage(error("桌名已被使用，或你已經在其他桌了。"));
             return;
         }
-        player.sendMessage(info("已開桌「" + table.name() + "」。用 /mj bots 補電腦，或等其他人 /mj join "
-                + table.name() + "。"));
+        player.sendMessage(info("已開桌「" + table.name() + "」（" + variant.display()
+                + "）。用 /mj bots 補電腦，或等其他人 /mj join " + table.name() + "。"));
     }
 
     private void join(Player player, String name) {
@@ -144,7 +146,7 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
             player.sendMessage(error("只有開桌的人可以開局。"));
             return;
         }
-        if (!table.start(plugin.rules())) {
+        if (!table.start(plugin.rulesFor(table.variant()))) {
             player.sendMessage(error("還沒坐滿四家，或這桌已經開局了。"));
         }
     }
@@ -158,7 +160,8 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
         for (Table table : plugin.tables().tables()) {
             player.sendMessage(Component.text("  " + table.name() + " — "
                     + switch (table.state()) {
-                        case LOBBY -> "等待中，尚缺 " + table.freeSeats() + " 人";
+                        case LOBBY -> table.variant().display() + "，等待中，尚缺 "
+                                + table.freeSeats() + " 人";
                         case PLAYING -> "對局中";
                         case FINISHED -> "已結束";
                     }, NamedTextColor.GRAY));
@@ -370,7 +373,7 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
                         NamedTextColor.DARK_GRAY))
                 .build());
         String[][] lines = {
-            {"/mj create [桌名]", "開一張新桌"},
+            {"/mj create [桌名] [japan|taiwan]", "開一張新桌，可選玩法"},
             {"/mj join [桌名]", "加入牌桌"},
             {"/mj bots", "把空位補成電腦玩家"},
             {"/mj start", "四家坐滿後開局"},
@@ -418,6 +421,9 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
             return List.of();
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
+        if (args.length == 3 && sub.equals("create")) {
+            return prefixed(List.of("japan", "taiwan"), args[2]);
+        }
         if (args.length == 2 && sub.equals("join")) {
             return prefixed(plugin.tables().names(), args[1]);
         }

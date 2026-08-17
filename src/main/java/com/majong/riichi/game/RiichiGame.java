@@ -1,8 +1,10 @@
 package com.majong.riichi.game;
 
+import com.majong.riichi.core.Flower;
 import com.majong.riichi.core.Hand;
 import com.majong.riichi.core.HandEvaluator;
 import com.majong.riichi.core.HandValue;
+import com.majong.riichi.core.Piece;
 import com.majong.riichi.core.Meld;
 import com.majong.riichi.core.MeldType;
 import com.majong.riichi.core.ScoreCalculator;
@@ -11,6 +13,10 @@ import com.majong.riichi.core.Tiles;
 import com.majong.riichi.core.Wall;
 import com.majong.riichi.core.WinChecker;
 import com.majong.riichi.core.WinContext;
+import com.majong.riichi.taiwan.TaiwanContext;
+import com.majong.riichi.taiwan.TaiwanRules;
+import com.majong.riichi.taiwan.TaiwanScorer;
+import com.majong.riichi.taiwan.TaiwanValue;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -72,6 +78,8 @@ public final class RiichiGame {
     private boolean fourKanAbort;
     private HandResult lastResult;
     private boolean gameOver;
+    /** Taiwanese stakes; unused when a japanese hand is being dealt. */
+    private TaiwanRules taiwanRules = TaiwanRules.standard();
 
     public RiichiGame(GameRules rules, List<String> names, long seed, GameListener listener) {
         if (names.size() != SEATS) {
@@ -82,8 +90,22 @@ public final class RiichiGame {
         } : listener;
         this.random = new Random(seed);
         for (int seat = 0; seat < SEATS; seat++) {
-            seats[seat] = new SeatState(seat, names.get(seat), rules.startingPoints());
+            seats[seat] = new SeatState(seat, names.get(seat), rules.startingPoints(),
+                    rules.variant().totalSets());
         }
+    }
+
+    /** Sets the base and tai a taiwanese table plays for. */
+    public void taiwanRules(TaiwanRules value) {
+        this.taiwanRules = value;
+    }
+
+    public Variant variant() {
+        return rules.variant();
+    }
+
+    private int totalSets() {
+        return rules.variant().totalSets();
     }
 
     // ---------------------------------------------------------------- state
@@ -168,7 +190,9 @@ public final class RiichiGame {
         for (SeatState seat : seats) {
             seat.resetForHand();
         }
-        wall = Wall.shuffled(random, rules.redFives());
+        wall = rules.variant().hasFlowers()
+                ? Wall.shuffledWithFlowers(random)
+                : Wall.shuffled(random, rules.redFives());
         anyCallMade = false;
         fourKanAbort = false;
         chankanWindow = false;
@@ -180,14 +204,25 @@ public final class RiichiGame {
         pendingSeats.clear();
         lastResult = null;
 
-        for (int round = 0; round < 13; round++) {
+        for (int round = 0; round < rules.variant().handSize(); round++) {
             for (int offset = 0; offset < SEATS; offset++) {
-                seats[(dealer + offset) % SEATS].hand().add(wall.draw());
+                dealOne(seats[(dealer + offset) % SEATS]);
             }
         }
         phase = Phase.ACT;
         listener.onHandStarted(this);
         drawFor(dealer, false);
+    }
+
+    /** Deals one tile, setting aside and replacing any flower that turns up. */
+    private void dealOne(SeatState state) {
+        Piece piece = wall.drawPiece();
+        while (piece.isFlower()) {
+            state.addFlower(piece.flower());
+            listener.onFlower(this, state.seat(), piece.flower());
+            piece = wall.drawReplacementPiece();
+        }
+        state.hand().add(piece.tile());
     }
 
     private void drawFor(int seat, boolean replacement) {
@@ -196,7 +231,15 @@ public final class RiichiGame {
             finishExhaustiveDraw();
             return;
         }
-        Tile tile = replacement ? wall.drawReplacement() : wall.draw();
+        Piece piece = replacement ? wall.drawReplacementPiece() : wall.drawPiece();
+        while (piece.isFlower()) {
+            // A flower is turned face up and replaced from the back of the wall.
+            state.addFlower(piece.flower());
+            listener.onFlower(this, seat, piece.flower());
+            replacement = true;
+            piece = wall.drawReplacementPiece();
+        }
+        Tile tile = piece.tile();
         state.hand().draw(tile);
         state.markDrawn();
         state.setTemporaryFuriten(false);
@@ -227,14 +270,15 @@ public final class RiichiGame {
         if (canDeclareTsumo(seat)) {
             actions.add(new Action.Tsumo());
         }
-        if (isFirstUninterruptedTurn(state) && state.hasNineTerminals()) {
+        if (rules.variant() == Variant.JAPANESE
+                && isFirstUninterruptedTurn(state) && state.hasNineTerminals()) {
             actions.add(new Action.NineTerminals());
         }
         for (int kind : kanKinds(state)) {
             actions.add(new Action.Kan(kind));
         }
 
-        boolean canRiichi = hand.isClosed() && !state.riichi()
+        boolean canRiichi = rules.variant().allowsRiichi() && hand.isClosed() && !state.riichi()
                 && state.score() >= 1000 && wall.remaining() >= 4;
         List<Tile> candidates = distinct(hand.allConcealed());
         for (Tile tile : candidates) {
@@ -344,15 +388,15 @@ public final class RiichiGame {
         int[] before = hand.counts();
         int[] after = hand.countsWithDrawn();
         after[kind] -= 4;
-        Set<Integer> waitsBefore = WinChecker.waits(before, hand.melds().size());
-        Set<Integer> waitsAfter = WinChecker.waits(after, hand.melds().size() + 1);
+        Set<Integer> waitsBefore = WinChecker.waits(before, hand.melds().size(), totalSets());
+        Set<Integer> waitsAfter = WinChecker.waits(after, hand.melds().size() + 1, totalSets());
         return waitsBefore.equals(waitsAfter);
     }
 
     private boolean leavesTenpai(Hand hand, Tile discard) {
         int[] counts = hand.countsWithDrawn();
         counts[discard.kind()]--;
-        return WinChecker.isTenpai(counts, hand.melds().size());
+        return WinChecker.isTenpai(counts, hand.melds().size(), totalSets());
     }
 
     private boolean isFirstUninterruptedTurn(SeatState state) {
@@ -391,8 +435,14 @@ public final class RiichiGame {
 
     private boolean actOnTurn(int seat, Action action) {
         switch (action) {
-            case Action.Tsumo ignored -> finishWithWin(seat, -1, buildContext(seat,
-                    seats[seat].hand().drawn(), true, false));
+            case Action.Tsumo ignored -> {
+                Tile drawn = seats[seat].hand().drawn();
+                if (rules.variant() == Variant.TAIWANESE) {
+                    finishTaiwaneseWin(seat, -1, drawn, true, false);
+                } else {
+                    finishWithWin(seat, -1, buildContext(seat, drawn, true, false));
+                }
+            }
             case Action.NineTerminals ignored -> finishAbortive(AbortReason.NINE_TERMINALS);
             case Action.Kan kan -> declareKan(seat, kan.kind());
             case Action.Discard discard -> discard(seat, discard.tile(), discard.riichi());
@@ -576,7 +626,11 @@ public final class RiichiGame {
             int winner = ronSeats.getFirst();
             Tile tile = chankan ? pendingKan.tiles().getFirst() : lastDiscard;
             int loser = chankan ? pendingKanSeat : lastDiscardSeat;
-            finishWithWin(winner, loser, buildContext(winner, tile, false, chankan));
+            if (rules.variant() == Variant.TAIWANESE) {
+                finishTaiwaneseWin(winner, loser, tile, false, chankan);
+            } else {
+                finishWithWin(winner, loser, buildContext(winner, tile, false, chankan));
+            }
             return;
         }
         if (chankan) {
@@ -722,7 +776,16 @@ public final class RiichiGame {
         if (drawn == null) {
             return false;
         }
-        return HandEvaluator.evaluate(state.hand(), buildContext(seat, drawn, true, false)) != null;
+        return scores(seat, state.hand(), drawn, true, false);
+    }
+
+    /** Whether these tiles are a hand this variant lets you declare. */
+    private boolean scores(int seat, Hand hand, Tile winningTile, boolean tsumo, boolean chankan) {
+        if (rules.variant() == Variant.TAIWANESE) {
+            return TaiwanScorer.score(hand, taiwanContext(seat, winningTile, tsumo, chankan),
+                    taiwanRules) != null;
+        }
+        return HandEvaluator.evaluate(hand, buildContext(seat, winningTile, tsumo, chankan)) != null;
     }
 
     private boolean canDeclareRon(int seat, Tile tile) {
@@ -732,7 +795,7 @@ public final class RiichiGame {
         }
         Hand probe = copyOf(state.hand());
         probe.add(tile);
-        return HandEvaluator.evaluate(probe, buildContext(seat, tile, false, chankanWindow)) != null;
+        return scores(seat, probe, tile, false, chankanWindow);
     }
 
     private Hand copyOf(Hand hand) {
@@ -770,6 +833,58 @@ public final class RiichiGame {
                 .build();
     }
 
+    private TaiwanContext taiwanContext(int seat, Tile winningTile, boolean tsumo,
+                                        boolean chankan) {
+        SeatState state = seats[seat];
+        boolean firstTurn = !anyCallMade && state.discards().isEmpty();
+        return TaiwanContext.builder(winningTile)
+                .tsumo(tsumo)
+                .seatWind(seatWind(seat))
+                .roundWind(roundWind)
+                // A taiwanese dealer keeps their seat rather than banking honba.
+                .dealerStreak(seat == dealer ? honba : 0)
+                .flowers(state.flowers())
+                .afterKan(tsumo && rinshanDraw)
+                .robbingKan(chankan)
+                .lastDraw(tsumo && wall.remaining() == 0)
+                .lastDiscard(!tsumo && !chankan && wall.remaining() == 0)
+                .firstTurn(firstTurn)
+                .build();
+    }
+
+    /** Settles a taiwanese win: base plus tai, from one player or from all three. */
+    private void finishTaiwaneseWin(int winner, int loser, Tile winningTile, boolean tsumo,
+                                    boolean chankan) {
+        SeatState state = seats[winner];
+        if (!tsumo) {
+            state.hand().add(winningTile);
+        }
+        TaiwanValue value = TaiwanScorer.score(state.hand(),
+                taiwanContext(winner, winningTile, tsumo, chankan), taiwanRules);
+        Objects.requireNonNull(value, "a declared win must score");
+
+        int[] deltas = new int[SEATS];
+        if (tsumo) {
+            for (int seat = 0; seat < SEATS; seat++) {
+                if (seat != winner) {
+                    deltas[seat] = -value.perPlayer();
+                }
+            }
+            deltas[winner] = value.perPlayer() * 3;
+        } else {
+            deltas[loser] = -value.perPlayer();
+            deltas[winner] = value.perPlayer();
+        }
+        applyDeltas(deltas);
+
+        List<String> lines = new ArrayList<>();
+        for (TaiwanValue.ScoredTai pattern : value.patterns()) {
+            lines.add(pattern.display());
+        }
+        settleHand(new HandResult.Won(winner, loser, lines, value.summary(), deltas),
+                winner == dealer);
+    }
+
     private void finishWithWin(int winner, int loser, WinContext context) {
         SeatState state = seats[winner];
         if (loser >= 0) {
@@ -794,7 +909,16 @@ public final class RiichiGame {
         }
         riichiSticks = 0;
         applyDeltas(deltas);
-        settleHand(new HandResult.Won(winner, loser, value, deltas), winner == dealer);
+
+        List<String> lines = new ArrayList<>();
+        for (com.majong.riichi.core.ScoredYaku scored : value.yaku()) {
+            lines.add(scored.display());
+        }
+        if (value.dora() + value.uraDora() + value.redDora() > 0) {
+            lines.add("ドラ" + value.dora() + " 裏ドラ" + value.uraDora() + " 赤" + value.redDora());
+        }
+        settleHand(new HandResult.Won(winner, loser, lines, value.summary(), deltas),
+                winner == dealer);
     }
 
     private void finishExhaustiveDraw() {
@@ -803,7 +927,8 @@ public final class RiichiGame {
             seats[seat].hand().keepDrawn();
             tenpai[seat] = seats[seat].isTenpai();
         }
-        int[] deltas = ScoreCalculator.exhaustiveDrawTransfer(tenpai);
+        int[] deltas = rules.variant().hasTenpaiPayments()
+                ? ScoreCalculator.exhaustiveDrawTransfer(tenpai) : new int[SEATS];
         applyDeltas(deltas);
         settleHand(new HandResult.ExhaustiveDraw(tenpai, deltas), tenpai[dealer]);
     }

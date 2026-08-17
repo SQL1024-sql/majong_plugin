@@ -1,5 +1,6 @@
 package com.majong.riichi.game;
 
+import com.majong.riichi.core.Flower;
 import com.majong.riichi.core.Hand;
 import com.majong.riichi.core.Tile;
 import com.majong.riichi.core.Tiles;
@@ -14,7 +15,10 @@ public final class SeatState {
 
     private final int seat;
     private final String name;
+    private final int totalSets;
     private int score;
+    /** Flowers turned face up beside the hand; taiwanese play only. */
+    private final List<Flower> flowers = new ArrayList<>();
 
     private Hand hand = new Hand();
     private final List<Tile> discards = new ArrayList<>(24);
@@ -28,14 +32,16 @@ public final class SeatState {
     private boolean riichiFuriten;
     private boolean drewThisHand;
 
-    SeatState(int seat, String name, int score) {
+    SeatState(int seat, String name, int score, int totalSets) {
         this.seat = seat;
         this.name = name;
         this.score = score;
+        this.totalSets = totalSets;
     }
 
     void resetForHand() {
         hand = new Hand();
+        flowers.clear();
         discards.clear();
         riichiDiscardIndex = -1;
         riichi = false;
@@ -122,9 +128,17 @@ public final class SeatState {
         riichiFuriten = true;
     }
 
+    public List<Flower> flowers() {
+        return Collections.unmodifiableList(flowers);
+    }
+
+    void addFlower(Flower flower) {
+        flowers.add(flower);
+    }
+
     /** The tiles this hand is waiting on, ignoring the tile currently drawn. */
     public Set<Integer> waits() {
-        return WinChecker.waits(hand.counts(), hand.melds().size());
+        return WinChecker.waits(hand.counts(), hand.melds().size(), totalSets);
     }
 
     /**

@@ -2,6 +2,8 @@ package com.majong.riichi.plugin;
 
 import com.majong.riichi.core.Tiles;
 import com.majong.riichi.game.GameRules;
+import com.majong.riichi.game.Variant;
+import com.majong.riichi.taiwan.TaiwanRules;
 import com.majong.riichi.plugin.scene.TableScene;
 import com.majong.riichi.plugin.scene.TilePreview;
 import java.io.IOException;
@@ -28,6 +30,9 @@ public final class MahjongPlugin extends JavaPlugin implements Listener {
     private TableManager tables;
     private TilePreview preview;
     private GameRules rules;
+    private GameRules taiwanGameRules;
+    private Variant defaultVariant = Variant.JAPANESE;
+    private TaiwanRules taiwanStakes = TaiwanRules.standard();
     private int turnTimeoutTicks = 20 * 30;
     private int botDelayTicks = 12;
     private int nextHandDelayTicks = 20 * 6;
@@ -112,14 +117,42 @@ public final class MahjongPlugin extends JavaPlugin implements Listener {
             packHash = null;
         }
 
+        defaultVariant = Variant.parse(config.getString("variant", "japan"));
         boolean eastOnly = "tonpuusen".equalsIgnoreCase(config.getString("rules.game-length", "hanchan"));
-        rules = new GameRules(
+        int finalWind = eastOnly ? Tiles.EAST : Tiles.SOUTH;
+        boolean headBump = config.getBoolean("rules.head-bump", true);
+        rules = new GameRules(Variant.JAPANESE,
                 config.getInt("rules.starting-points", 25000),
-                eastOnly ? Tiles.EAST : Tiles.SOUTH,
+                finalWind,
                 config.getBoolean("rules.red-fives", true),
                 config.getBoolean("rules.open-tanyao", true),
-                config.getBoolean("rules.head-bump", true),
+                headBump,
                 config.getBoolean("rules.end-on-bankruptcy", true));
+        taiwanGameRules = new GameRules(Variant.TAIWANESE,
+                config.getInt("taiwan.starting-points", 0),
+                finalWind, false, true, headBump,
+                config.getBoolean("taiwan.end-on-bankruptcy", false));
+        taiwanStakes = new TaiwanRules(
+                config.getInt("taiwan.base", TaiwanRules.DEFAULT_BASE),
+                config.getInt("taiwan.per-tai", TaiwanRules.DEFAULT_PER_TAI),
+                readTaiOverrides(config));
+    }
+
+    /** Reads any per pattern tai values an admin has overridden. */
+    private java.util.Map<com.majong.riichi.taiwan.Tai, Integer> readTaiOverrides(
+            FileConfiguration config) {
+        java.util.Map<com.majong.riichi.taiwan.Tai, Integer> overrides =
+                new java.util.EnumMap<>(com.majong.riichi.taiwan.Tai.class);
+        var section = config.getConfigurationSection("taiwan.tai");
+        if (section == null) {
+            return overrides;
+        }
+        for (com.majong.riichi.taiwan.Tai tai : com.majong.riichi.taiwan.Tai.values()) {
+            if (section.isInt(tai.configKey())) {
+                overrides.put(tai, section.getInt(tai.configKey()));
+            }
+        }
+        return overrides;
     }
 
     /**
@@ -151,6 +184,20 @@ public final class MahjongPlugin extends JavaPlugin implements Listener {
 
     public GameRules rules() {
         return rules;
+    }
+
+    /** The rules for the given game, so a table can pick which one it deals. */
+    public GameRules rulesFor(Variant variant) {
+        return variant == Variant.TAIWANESE ? taiwanGameRules : rules;
+    }
+
+    /** The game a table is dealt when nobody says which. */
+    public Variant defaultVariant() {
+        return defaultVariant;
+    }
+
+    public TaiwanRules taiwanStakes() {
+        return taiwanStakes;
     }
 
     public TilePreview preview() {

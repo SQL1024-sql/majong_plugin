@@ -66,6 +66,7 @@ public final class SimpleBot {
     private static Action decideDiscard(RiichiGame game, int seat, List<Action> options) {
         Hand hand = game.seat(seat).hand();
         int melds = hand.melds().size();
+        int totalSets = game.variant().totalSets();
         int[] counts = hand.countsWithDrawn();
 
         Action best = null;
@@ -79,11 +80,11 @@ public final class SimpleBot {
                 continue;
             }
             counts[discard.tile().kind()]--;
-            int shanten = Shanten.calculate(counts, melds);
+            int shanten = Shanten.calculate(counts, melds, totalSets);
             // Early on almost everything helps, so counting useful tiles costs
             // a lot and tells us little; lean on the tile's own value instead.
             int useful = shanten <= 0 || shanten >= 4
-                    ? 0 : Shanten.improvingTiles(counts, melds).size();
+                    ? 0 : Shanten.improvingTiles(counts, melds, totalSets).size();
             counts[discard.tile().kind()]++;
 
             int safety = Tiles.isTerminalOrHonor(discard.tile().kind()) ? 1 : 0;

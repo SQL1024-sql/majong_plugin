@@ -39,6 +39,9 @@ table:
   tile-scale: 0.5
   tile-spacing: 0.22
 
+# Which game a table deals when nobody says: japan or taiwan.
+variant: japan
+
 rules:
   # hanchan plays east and south rounds, tonpuusen only east.
   game-length: hanchan
@@ -51,3 +54,17 @@ rules:
   head-bump: true
   # Stop the game as soon as somebody goes below zero points.
   end-on-bankruptcy: true
+
+# Taiwanese sixteen tile play. A win pays the base plus the tai count times
+# the tai value, taken from all three on a self draw and from whoever dealt in
+# otherwise. Scores start at zero and are simply the running total won or lost.
+taiwan:
+  base: 30
+  per-tai: 10
+  starting-points: 0
+  end-on-bankruptcy: false
+  # Any pattern can be re-valued here; anything left out keeps its usual worth.
+  # tai:
+  #   pinghu: 2
+  #   pengpenghu: 4
+  #   qingyise: 8

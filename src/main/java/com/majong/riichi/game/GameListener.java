@@ -1,5 +1,6 @@
 package com.majong.riichi.game;
 
+import com.majong.riichi.core.Flower;
 import com.majong.riichi.core.Meld;
 import com.majong.riichi.core.Tile;
 import java.util.List;
@@ -25,6 +26,10 @@ public interface GameListener {
     }
 
     default void onDoraRevealed(RiichiGame game, Tile indicator) {
+    }
+
+    /** A flower was turned face up and replaced; taiwanese play only. */
+    default void onFlower(RiichiGame game, int seat, Flower flower) {
     }
 
     default void onHandFinished(RiichiGame game, HandResult result) {

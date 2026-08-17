@@ -13,17 +13,29 @@ public final class Shanten {
 
     /** The best of the ordinary, seven pairs and thirteen orphans readings. */
     public static int calculate(int[] counts, int meldCount) {
-        int best = standard(counts, meldCount);
-        if (meldCount == 0) {
+        return calculate(counts, meldCount, WinChecker.JAPANESE_SETS);
+    }
+
+    /**
+     * Shanten for a hand of the given size. Seven pairs and thirteen orphans
+     * are japanese shapes, so they only apply to a four set hand.
+     */
+    public static int calculate(int[] counts, int meldCount, int totalSets) {
+        int best = standard(counts, meldCount, totalSets);
+        if (meldCount == 0 && totalSets == WinChecker.JAPANESE_SETS) {
             best = Math.min(best, sevenPairs(counts));
             best = Math.min(best, thirteenOrphans(counts));
         }
         return best;
     }
 
-    /** Shanten counting only ordinary four set and a pair hands. */
+    /** Shanten counting only ordinary sets and a pair. */
     public static int standard(int[] counts, int meldCount) {
-        Search search = new Search(counts.clone(), meldCount);
+        return standard(counts, meldCount, WinChecker.JAPANESE_SETS);
+    }
+
+    public static int standard(int[] counts, int meldCount, int totalSets) {
+        Search search = new Search(counts.clone(), totalSets);
         search.run(0, meldCount, 0, false);
         return search.best;
     }
@@ -60,15 +72,20 @@ public final class Shanten {
      * The tile kinds that would bring the hand one step closer to ready.
      */
     public static java.util.Set<Integer> improvingTiles(int[] counts, int meldCount) {
+        return improvingTiles(counts, meldCount, WinChecker.JAPANESE_SETS);
+    }
+
+    public static java.util.Set<Integer> improvingTiles(int[] counts, int meldCount,
+                                                        int totalSets) {
         java.util.Set<Integer> useful = new java.util.LinkedHashSet<>();
-        int current = calculate(counts, meldCount);
+        int current = calculate(counts, meldCount, totalSets);
         int[] working = counts.clone();
         for (int kind = 0; kind < Tiles.KINDS; kind++) {
             if (working[kind] >= 4) {
                 continue;
             }
             working[kind]++;
-            if (calculate(working, meldCount) < current) {
+            if (calculate(working, meldCount, totalSets) < current) {
                 useful.add(kind);
             }
             working[kind]--;
@@ -82,12 +99,16 @@ public final class Shanten {
      */
     private static final class Search {
         private final int[] counts;
-        private final int melds;
-        private int best = 8;
+        private final int totalSets;
+        /** A hand needs this many blocks: the sets plus the pair. */
+        private final int maxBlocks;
+        private int best;
 
-        Search(int[] counts, int melds) {
+        Search(int[] counts, int totalSets) {
             this.counts = counts;
-            this.melds = melds;
+            this.totalSets = totalSets;
+            this.maxBlocks = totalSets + 1;
+            this.best = 2 * totalSets;
         }
 
         void run(int index, int sets, int partials, boolean hasPair) {
@@ -101,12 +122,12 @@ public final class Shanten {
             }
             int blocks = sets + partials;
 
-            if (counts[index] >= 3 && blocks < 5) {
+            if (counts[index] >= 3 && blocks < maxBlocks) {
                 counts[index] -= 3;
                 run(index, sets + 1, partials, hasPair);
                 counts[index] += 3;
             }
-            if (Tiles.canStartRun(index) && counts[index + 1] > 0 && counts[index + 2] > 0 && blocks < 5) {
+            if (Tiles.canStartRun(index) && counts[index + 1] > 0 && counts[index + 2] > 0 && blocks < maxBlocks) {
                 counts[index]--;
                 counts[index + 1]--;
                 counts[index + 2]--;
@@ -115,12 +136,12 @@ public final class Shanten {
                 counts[index + 1]++;
                 counts[index + 2]++;
             }
-            if (counts[index] >= 2 && blocks < 5) {
+            if (counts[index] >= 2 && blocks < maxBlocks) {
                 counts[index] -= 2;
                 run(index, sets, partials + 1, true);
                 counts[index] += 2;
             }
-            if (!Tiles.isHonor(index) && blocks < 5) {
+            if (!Tiles.isHonor(index) && blocks < maxBlocks) {
                 // An open ended or closed pair of neighbours still needs one tile.
                 if (Tiles.rankOf(index) <= 8 && counts[index + 1] > 0) {
                     counts[index]--;
@@ -144,8 +165,8 @@ public final class Shanten {
         }
 
         private void score(int sets, int partials, boolean hasPair) {
-            int value = 8 - 2 * sets - partials;
-            if (sets + partials == 5 && !hasPair) {
+            int value = 2 * totalSets - 2 * sets - partials;
+            if (sets + partials == maxBlocks && !hasPair) {
                 // Five blocks with no pair leaves the hand without a head.
                 value++;
             }

@@ -8,6 +8,7 @@ import com.majong.riichi.game.GameListener;
 import com.majong.riichi.game.GameRules;
 import com.majong.riichi.game.HandResult;
 import com.majong.riichi.game.RiichiGame;
+import com.majong.riichi.game.Variant;
 import com.majong.riichi.plugin.scene.TableScene;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,6 +42,7 @@ public final class Table implements GameListener {
 
     private final MahjongPlugin plugin;
     private final String name;
+    private final Variant variant;
     private final UUID owner;
     private final UUID[] players = new UUID[RiichiGame.SEATS];
     private final boolean[] bots = new boolean[RiichiGame.SEATS];
@@ -53,9 +55,10 @@ public final class Table implements GameListener {
     private final Map<Integer, BukkitTask> timeouts = new HashMap<>();
     private BukkitTask scheduled;
 
-    Table(MahjongPlugin plugin, String name, Player owner) {
+    Table(MahjongPlugin plugin, String name, Variant variant, Player owner) {
         this.plugin = plugin;
         this.name = name;
+        this.variant = variant;
         this.owner = owner.getUniqueId();
         players[0] = owner.getUniqueId();
         this.scene = plugin.createScene();
@@ -82,6 +85,11 @@ public final class Table implements GameListener {
 
     public String name() {
         return name;
+    }
+
+    /** Which game this table deals. */
+    public Variant variant() {
+        return variant;
     }
 
     public State state() {
@@ -198,6 +206,7 @@ public final class Table implements GameListener {
             names.add(displayName(seat));
         }
         game = new RiichiGame(rules, names, System.nanoTime(), this);
+        game.taiwanRules(plugin.taiwanStakes());
         state = State.PLAYING;
         if (!scene.isPlaced()) {
             Player host = Bukkit.getPlayer(owner);

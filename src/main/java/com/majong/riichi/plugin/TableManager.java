@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import com.majong.riichi.game.Variant;
 import org.bukkit.entity.Player;
 
 /** Keeps track of the tables on the server and who is sitting at which. */
@@ -21,12 +22,12 @@ public final class TableManager {
     }
 
     /** Creates a table with the given player as its first occupant. */
-    public Table create(Player owner, String name) {
+    public Table create(Player owner, String name, Variant variant) {
         String key = name.toLowerCase();
         if (tables.containsKey(key) || seated.containsKey(owner.getUniqueId())) {
             return null;
         }
-        Table table = new Table(plugin, name, owner);
+        Table table = new Table(plugin, name, variant, owner);
         tables.put(key, table);
         seated.put(owner.getUniqueId(), key);
         return table;
