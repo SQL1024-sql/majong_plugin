@@ -23,6 +23,27 @@ class WinCheckerTest {
     }
 
     @Test
+    void recognisesATaiwaneseHand() {
+        // Five sets and a pair, seventeen tiles.
+        int[] complete = Tiles.parseCounts("123456789m123456p99s");
+        assertTrue(WinChecker.isWinningHand(complete, 0, WinChecker.TAIWANESE_SETS));
+        // The same tiles are too many for a japanese hand.
+        assertFalse(WinChecker.isWinningHand(complete, 0));
+
+        int[] short_ = Tiles.parseCounts("123456789m123p55s");
+        assertTrue(WinChecker.isWinningHand(short_, 0));
+        assertFalse(WinChecker.isWinningHand(short_, 0, WinChecker.TAIWANESE_SETS));
+    }
+
+    @Test
+    void findsTaiwaneseWaits() {
+        // Sixteen tiles waiting on the last of five sets.
+        var waits = WinChecker.waits(Tiles.parseCounts("123456789m12345p99s"), 0,
+                WinChecker.TAIWANESE_SETS);
+        assertEquals(Set.of(Tiles.parse("6p"), Tiles.parse("3p")), waits);
+    }
+
+    @Test
     void recognisesSevenPairs() {
         assertTrue(WinChecker.isSevenPairs(Tiles.parseCounts("1133m5577p99s1177z")));
         // Four of a kind is not two pairs.

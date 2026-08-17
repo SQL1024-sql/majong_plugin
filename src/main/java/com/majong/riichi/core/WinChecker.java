@@ -23,18 +23,33 @@ public final class WinChecker {
     private WinChecker() {
     }
 
+    /** Sets in an ordinary japanese hand: four and a pair. */
+    public static final int JAPANESE_SETS = 4;
+    /** Sets in an ordinary taiwanese hand: five and a pair. */
+    public static final int TAIWANESE_SETS = 5;
+
     /**
      * True when the concealed tiles complete the hand, counting the tiles
      * already locked away in {@code meldCount} melds.
      */
     public static boolean isWinningHand(int[] counts, int meldCount) {
-        if (Tiles.totalCount(counts) != 3 * (4 - meldCount) + 2) {
+        return isWinningHand(counts, meldCount, JAPANESE_SETS);
+    }
+
+    /**
+     * True when the concealed tiles complete a hand of {@code totalSets} sets
+     * and a pair. Seven pairs and thirteen orphans are japanese shapes and are
+     * only considered for a four set hand.
+     */
+    public static boolean isWinningHand(int[] counts, int meldCount, int totalSets) {
+        if (Tiles.totalCount(counts) != 3 * (totalSets - meldCount) + 2) {
             return false;
         }
-        if (meldCount == 0 && (isSevenPairs(counts) || isThirteenOrphans(counts))) {
+        if (totalSets == JAPANESE_SETS && meldCount == 0
+                && (isSevenPairs(counts) || isThirteenOrphans(counts))) {
             return true;
         }
-        return !standardDecompositions(counts, meldCount).isEmpty();
+        return !standardDecompositions(counts, meldCount, totalSets).isEmpty();
     }
 
     public static boolean isSevenPairs(int[] counts) {
@@ -90,8 +105,17 @@ public final class WinChecker {
      * melds already sit outside the hand.
      */
     public static List<List<Group>> standardDecompositions(int[] counts, int meldCount) {
+        return standardDecompositions(counts, meldCount, JAPANESE_SETS);
+    }
+
+    /**
+     * All ways the concealed tiles read as sets plus one pair, for a hand of
+     * the given total size.
+     */
+    public static List<List<Group>> standardDecompositions(int[] counts, int meldCount,
+                                                           int totalSets) {
         List<List<Group>> results = new ArrayList<>();
-        int neededSets = 4 - meldCount;
+        int neededSets = totalSets - meldCount;
         if (Tiles.totalCount(counts) != 3 * neededSets + 2) {
             return results;
         }
@@ -147,8 +171,13 @@ public final class WinChecker {
      * hand is not ready.
      */
     public static Set<Integer> waits(int[] counts, int meldCount) {
+        return waits(counts, meldCount, JAPANESE_SETS);
+    }
+
+    /** The tile kinds that would complete a waiting hand of the given size. */
+    public static Set<Integer> waits(int[] counts, int meldCount, int totalSets) {
         Set<Integer> waits = new LinkedHashSet<>();
-        if (Tiles.totalCount(counts) != 3 * (4 - meldCount) + 1) {
+        if (Tiles.totalCount(counts) != 3 * (totalSets - meldCount) + 1) {
             return waits;
         }
         int[] working = counts.clone();
@@ -157,7 +186,7 @@ public final class WinChecker {
                 continue;
             }
             working[kind]++;
-            if (isWinningHand(working, meldCount)) {
+            if (isWinningHand(working, meldCount, totalSets)) {
                 waits.add(kind);
             }
             working[kind]--;
@@ -167,5 +196,9 @@ public final class WinChecker {
 
     public static boolean isTenpai(int[] counts, int meldCount) {
         return !waits(counts, meldCount).isEmpty();
+    }
+
+    public static boolean isTenpai(int[] counts, int meldCount, int totalSets) {
+        return !waits(counts, meldCount, totalSets).isEmpty();
     }
 }
