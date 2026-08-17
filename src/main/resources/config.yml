@@ -1,69 +1,67 @@
-# How long a player has to act before the table plays for them.
-# Running out of time throws the tile just drawn, or skips a call.
+# 每個人可以思考多久，超過就由系統代打。
+# 逾時會直接摸切剛摸到的牌，或跳過鳴牌。
 turn-timeout-seconds: 30
 
-# Pause between computer players' moves, in ticks (20 ticks = 1 second).
+# 電腦玩家兩手之間的間隔，單位是 tick（20 tick = 1 秒）。
 bot-delay-ticks: 12
 
-# Pause between the end of one hand and the deal of the next, in seconds.
+# 一局結束到下一局開牌之間的間隔，單位是秒。
 next-hand-delay-seconds: 6
 
-# How tiles are drawn in chat.
-#   auto   drawn tiles for players who loaded the resource pack, text for the rest
-#   tiles  always drawn tiles, whether or not the pack loaded
-#   text   always coloured text such as 3m and 東
+# 聊天欄裡的牌怎麼顯示。
+#   auto   有載入資源包的人看牌圖，其他人看文字
+#   tiles  一律用牌圖，不管有沒有載入資源包
+#   text   一律用彩色國字，例如 五萬、東風
 tile-graphics: auto
 
-# Drawn tiles need the resource pack the plugin writes to
-# plugins/MajongPlugin/majong-tiles.zip on startup. Host that file somewhere the
-# players can download it, then put the address and the hash printed in the
-# server log here. Leaving the address empty means the plugin never pushes a
-# pack, and players see coloured text unless they installed the pack themselves.
-# The pack is added alongside any others the server already sends, so an
-# existing pack keeps working; players see both stacked.
+# 牌圖需要外掛啟動時寫出來的資源包，位置在
+# plugins/MajongPlugin/majong-tiles.zip。把那個檔案放到玩家下載得到的地方，
+# 再把網址和 log 印出來的 SHA-1 填在這裡。網址留空就不會推送資源包，
+# 玩家除非自己安裝，否則只會看到彩色國字。
+# 這份資源包是「附加」上去的，不會踢掉伺服器原本推送的資源包，兩份會疊著用。
 resource-pack:
   url: ''
   sha1: ''
-  prompt: 麻雀の牌を表示するためのリソースパックです
-  # Kick players who refuse the pack. Only worth turning on for a mahjong server.
+  prompt: 這是顯示麻將牌面用的資源包
+  # 不接受資源包就踢出去。只有純麻將伺服器才建議打開。
   required: false
 
-# The table drawn in the world: tiles standing where the game is played.
-# A player sees their own hand face up and everybody else's backs.
+# 世界裡的牌桌：牌會實際立在遊戲進行的地方。
+# 每個人只看得到自己的手牌，其他三家對他顯示牌背。
 table:
   enabled: true
-  # How far each seat sits from the middle of the table, in blocks.
+  # 每一家離桌子中心多遠，單位是格。
   radius: 0.9
-  # How high the tiles stand above the point the table was placed at.
+  # 牌立在放桌位置上方多高。
   height: 0.9
   tile-scale: 0.5
   tile-spacing: 0.22
 
-# Which game a table deals when nobody says: japan or taiwan.
+# 開桌沒指定玩法時用哪一種：japan（日本立直）或 taiwan（台灣 16 張）。
 variant: japan
 
 rules:
-  # hanchan plays east and south rounds, tonpuusen only east.
+  # hanchan 半莊（東南兩圈），tonpuusen 東風戰（只打東圈）。
   game-length: hanchan
   starting-points: 25000
-  # One five of each suit counts as a red dora.
+  # 每種花色各有一張紅五當寶牌。
   red-fives: true
-  # All simples scores in an open hand.
+  # 副露之後斷么九仍然算役。
   open-tanyao: true
-  # Only the player closest to the discarder may win on a discard.
+  # 頭跳：只有最靠近放槍者的那家能胡。
   head-bump: true
-  # Stop the game as soon as somebody goes below zero points.
+  # 有人被打到負分就立刻結束對局。
   end-on-bankruptcy: true
 
-# Taiwanese sixteen tile play. A win pays the base plus the tai count times
-# the tai value, taken from all three on a self draw and from whoever dealt in
-# otherwise. Scores start at zero and are simply the running total won or lost.
+# 台灣 16 張。胡牌一家付 = 底 + 台數 × 台值；
+# 自摸三家都付，放槍由放槍的人獨付。
+# 分數從 0 開始記，直接就是輸贏的累計。
 taiwan:
   base: 30
   per-tai: 10
   starting-points: 0
   end-on-bankruptcy: false
-  # Any pattern can be re-valued here; anything left out keeps its usual worth.
+  # 想改某個台型的台數就在這裡覆寫，沒寫到的維持原本的台數。
   # tai:
   #   pinghu: 2
   #   pengpenghu: 4

@@ -487,7 +487,7 @@ def main():
                                   "max_inclusive": PACK_FORMAT_MAX},
             # Shown in the client's resource pack list, which makes a stale
             # pack obvious without digging through files.
-            "description": f"麻雀牌 MajongPlugin v{project_version()}",
+            "description": f"麻將牌 MajongPlugin v{project_version()}",
         }}, handle, indent=2)
         handle.write("\n")
 

@@ -2,22 +2,22 @@ name: MajongPlugin
 version: '${project.version}'
 main: com.majong.riichi.plugin.MahjongPlugin
 api-version: '${paper.api.version}'
-description: 日本麻雀 (riichi mahjong) played from chat.
+description: 日本麻將與台灣麻將，在聊天欄和世界裡的牌桌開打。
 authors: [majong_plugin contributors]
 website: https://github.com/SQL1024-sql/majong_plugin
 folia-supported: false
 
 commands:
   mahjong:
-    description: Open, join and play a riichi mahjong table.
+    description: 開桌、入座、打麻將。
     aliases: [mj, majong, riichi]
     usage: /mj help
     permission: majong.play
 
 permissions:
   majong.play:
-    description: Sit down at a mahjong table.
+    description: 可以入座打麻將。
     default: true
   majong.admin:
-    description: Reload the plugin settings.
+    description: 可以重新載入外掛設定。
     default: op

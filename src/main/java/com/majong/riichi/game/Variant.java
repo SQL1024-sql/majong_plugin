@@ -6,7 +6,7 @@ import com.majong.riichi.core.WinChecker;
 public enum Variant {
 
     /** Japanese riichi: thirteen tiles, four sets and a pair, dora and riichi. */
-    JAPANESE("日本立直麻雀", 13, WinChecker.JAPANESE_SETS, false, true, true, true),
+    JAPANESE("日本立直麻將", 13, WinChecker.JAPANESE_SETS, false, true, true, true),
 
     /** Taiwanese sixteen tile: five sets and a pair, flowers, scored in tai. */
     TAIWANESE("台灣十六張", 16, WinChecker.TAIWANESE_SETS, true, false, false, false);

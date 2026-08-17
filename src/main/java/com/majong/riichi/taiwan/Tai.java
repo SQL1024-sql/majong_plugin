@@ -16,9 +16,9 @@ public enum Tai {
     QUANQIUREN("全求人", 2),
     DANDIAO("獨聽", 1),
 
-    YAKUHAI_ZHONG("中", 1),
-    YAKUHAI_FA("發", 1),
-    YAKUHAI_BAI("白", 1),
+    YAKUHAI_ZHONG("紅中", 1),
+    YAKUHAI_FA("發財", 1),
+    YAKUHAI_BAI("白板", 1),
     SEAT_WIND("門風", 1),
     ROUND_WIND("圈風", 1),
 

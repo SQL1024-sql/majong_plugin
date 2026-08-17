@@ -13,7 +13,7 @@ public sealed interface HandResult {
      * because han and fu and tai do not share a shape.
      *
      * @param lines   one line per pattern the hand scored
-     * @param summary the one line total, such as {@code 3翻40符 7700点}
+     * @param summary the one line total, such as {@code 3翻40符 7700點}
      */
     record Won(int winner, int loser, List<String> lines, String summary, int[] deltas)
             implements HandResult {

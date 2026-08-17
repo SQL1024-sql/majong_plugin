@@ -88,6 +88,31 @@ class TaiwaneseGameTest {
         }
     }
 
+    /**
+     * A taiwanese wall has no dead wall, so a flower drawn as the very last tile
+     * has nothing to be replaced with. That used to throw; the hand should simply
+     * end in a draw. Random play is used rather than the bots because it reaches
+     * the end of the wall far more often, and it is cheap: the legal moves for a
+     * turn are found without a shanten search.
+     */
+    @Test
+    void aFlowerWithNoReplacementLeftEndsTheHand() {
+        for (long seed = 1; seed <= 40; seed++) {
+            RiichiGame game = new RiichiGame(GameRules.taiwanese(), NAMES, seed, null);
+            java.util.Random random = new java.util.Random(seed);
+            game.startHand();
+            int steps = 0;
+            while (game.phase() != RiichiGame.Phase.IDLE
+                    && game.phase() != RiichiGame.Phase.FINISHED) {
+                assertTrue(++steps < STEP_LIMIT, "the hand did not finish");
+                int seat = seatToAct(game);
+                List<Action> options = game.options(seat);
+                assertTrue(game.act(seat, options.get(random.nextInt(options.size()))));
+            }
+            assertNotNull(game.lastResult(), "every hand ends with a result");
+        }
+    }
+
     @Test
     void botsPlayAWholeGameAndThePointsBalance() {
         for (long seed = 1; seed <= 2; seed++) {

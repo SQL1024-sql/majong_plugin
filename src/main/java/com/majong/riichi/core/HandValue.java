@@ -26,18 +26,18 @@ public record HandValue(List<ScoredYaku> yaku, int han, int fu, int dora, int ur
         return yaku.stream().anyMatch(scored -> scored.yaku().isYakuman());
     }
 
-    /** A one line summary such as {@code 3翻40符 7700点}. */
+    /** A one line summary such as {@code 3翻40符 7700點}. */
     public String summary() {
         StringBuilder builder = new StringBuilder();
         if (isYakuman()) {
-            builder.append("役満");
+            builder.append("役滿");
         } else {
             builder.append(han).append("翻").append(fu).append("符");
             if (limitName != null) {
                 builder.append(' ').append(limitName);
             }
         }
-        builder.append(' ').append(payment.total()).append("点");
+        builder.append(' ').append(payment.total()).append("點");
         return builder.toString();
     }
 }

@@ -48,7 +48,7 @@ public final class TableInteractions implements Listener {
         Tile tile = Tile.parse(notation);
         if (!table.submit(seat, new Action.Discard(tile, false))) {
             player.sendMessage(Component.text()
-                    .append(Component.text("[麻雀] ", NamedTextColor.GOLD))
+                    .append(Component.text("[麻將] ", NamedTextColor.GOLD))
                     .append(Component.text("現在不能打 " + Tiles.display(tile.kind()),
                             NamedTextColor.RED))
                     .build());

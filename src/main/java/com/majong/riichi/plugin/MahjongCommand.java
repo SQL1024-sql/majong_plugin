@@ -270,14 +270,15 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
 
     private void discard(Player player, String[] args, boolean riichi) {
         if (args.length < 2) {
-            player.sendMessage(error("用法：/mj " + (riichi ? "riichi" : "discard") + " <牌> 例如 3m"));
+            player.sendMessage(error("用法：/mj " + (riichi ? "riichi" : "discard")
+                    + " <牌>，例如 三萬 或 3m"));
             return;
         }
         Tile tile;
         try {
             tile = Tile.parse(args[1]);
         } catch (IllegalArgumentException exception) {
-            player.sendMessage(error("看不懂的牌：" + args[1] + "（例如 1m 5p 0s 3z）"));
+            player.sendMessage(error("看不懂的牌：" + args[1] + "（例如 三萬、五筒、東風，或 3m 5p 1z）"));
             return;
         }
         submitSimple(player, new Action.Discard(tile, riichi));
@@ -368,7 +369,7 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
         player.sendMessage(TableView.separator());
         // The version is on the header so a screenshot says which build it came from.
         player.sendMessage(Component.text()
-                .append(Component.text("日本麻雀 指令", NamedTextColor.GOLD))
+                .append(Component.text("麻將 指令", NamedTextColor.GOLD))
                 .append(Component.text("  v" + plugin.getPluginMeta().getVersion(),
                         NamedTextColor.DARK_GRAY))
                 .build());
@@ -381,9 +382,9 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
             {"/mj list", "列出所有牌桌"},
             {"/mj info", "看場況與各家牌河"},
             {"/mj hand", "重新顯示自己的手牌"},
-            {"/mj discard <牌>", "打牌，例如 /mj discard 3m"},
+            {"/mj discard <牌>", "打牌，例如 /mj discard 三萬"},
             {"/mj riichi <牌>", "立直並打出該牌"},
-            {"/mj tsumo | ron", "自摸 / 榮和"},
+            {"/mj tsumo | ron", "自摸 / 胡別人打的牌"},
             {"/mj pon | chi <牌> <牌> | kan <牌>", "碰 / 吃 / 槓"},
             {"/mj pass", "跳過鳴牌"},
             {"/mj kyuushu", "九種九牌流局"},
@@ -397,18 +398,20 @@ public final class MahjongCommand implements CommandExecutor, TabCompleter {
                     .append(Component.text("  " + line[1], NamedTextColor.GRAY))
                     .build());
         }
-        player.sendMessage(Component.text("  牌的寫法：1m-9m 萬子、1p-9p 筒子、1s-9s 索子、"
-                + "1z-7z 東南西北白發中、0m/0p/0s 赤五", NamedTextColor.DARK_GRAY));
+        player.sendMessage(Component.text("  牌名直接打國字就好：一萬～九萬、一筒～九筒、一索～九索、"
+                + "東風 南風 西風 北風 白板 發財 紅中", NamedTextColor.DARK_GRAY));
+        player.sendMessage(Component.text("  也收短碼：1m-9m 萬子、1p-9p 筒子、1s-9s 索子、"
+                + "1z-7z 字牌、0m/0p/0s 赤五", NamedTextColor.DARK_GRAY));
         player.sendMessage(TableView.separator());
     }
 
     private static Component info(String text) {
-        return Component.text("[麻雀] ", NamedTextColor.GOLD).append(
+        return Component.text("[麻將] ", NamedTextColor.GOLD).append(
                 Component.text(text, NamedTextColor.WHITE));
     }
 
     private static Component error(String text) {
-        return Component.text("[麻雀] ", NamedTextColor.GOLD).append(
+        return Component.text("[麻將] ", NamedTextColor.GOLD).append(
                 Component.text(text, NamedTextColor.RED));
     }
 

@@ -34,22 +34,22 @@ public final class ScoreCalculator {
         return Math.min(base, 2000);
     }
 
-    /** The japanese name for the limit a hand reached, or {@code null} below mangan. */
+    /** The name of the limit a hand reached, or {@code null} below mangan. */
     public static String limitName(int han, int fu) {
         if (han >= 13) {
-            return "数え役満";
+            return "累計役滿";
         }
         if (han >= 11) {
-            return "三倍満";
+            return "三倍滿";
         }
         if (han >= 8) {
-            return "倍満";
+            return "倍滿";
         }
         if (han >= 6) {
-            return "跳満";
+            return "跳滿";
         }
         if (han == 5 || fu * (1 << (2 + han)) >= 2000) {
-            return "満貫";
+            return "滿貫";
         }
         return null;
     }

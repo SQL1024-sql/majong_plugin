@@ -81,7 +81,10 @@ public final class MahjongPlugin extends JavaPlugin implements Listener {
         getServer().getPluginManager().registerEvents(this, this);
         getServer().getPluginManager().registerEvents(preview, this);
         getServer().getPluginManager().registerEvents(new TableInteractions(this), this);
-        getSLF4JLogger().info("Riichi mahjong ready; type /mj help to sit down.");
+        // Console logs stay in ascii: a server console that is not on UTF-8 turns
+        // chinese into question marks. Everything players see is a chat component,
+        // which is sent as UTF-8 and always renders.
+        getSLF4JLogger().info("Mahjong ready; type /mj help to sit down.");
     }
 
     @Override
@@ -109,7 +112,7 @@ public final class MahjongPlugin extends JavaPlugin implements Listener {
         defaultStyle = TileRenderer.Style.parse(config.getString("tile-graphics", "auto"));
         packUrl = config.getString("resource-pack.url", "").trim();
         packRequired = config.getBoolean("resource-pack.required", false);
-        packPrompt = config.getString("resource-pack.prompt", "麻雀の牌を表示するためのリソースパックです");
+        packPrompt = config.getString("resource-pack.prompt", "這是顯示麻將牌面用的資源包");
         packHash = ResourcePackFile.decodeHash(config.getString("resource-pack.sha1", ""));
         if (packHash != null && packHash.length != SHA1_LENGTH) {
             getSLF4JLogger().warn("resource-pack.sha1 is not a 40 character sha1; ignoring it. "

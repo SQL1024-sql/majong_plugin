@@ -135,6 +135,15 @@ public final class Wall {
     }
 
     /**
+     * True when the back of the wall can still hand out a replacement. A
+     * taiwanese wall runs out when the two ends meet, which happens if the last
+     * tile anybody draws turns out to be a flower.
+     */
+    public boolean canDrawReplacement() {
+        return hasFlowers() ? liveEnd > drawIndex : kansDeclared < MAX_KANS;
+    }
+
+    /**
      * Takes a replacement from the back of the wall, for a kan or for a flower.
      * A japanese wall keeps its dead wall the same length by giving up the last
      * live tile; a taiwanese one simply works backwards.

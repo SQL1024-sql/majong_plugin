@@ -6,11 +6,11 @@
 
     <groupId>com.majong</groupId>
     <artifactId>majong-plugin</artifactId>
-    <version>1.4.0</version>
+    <version>1.5.0</version>
     <packaging>jar</packaging>
 
     <name>MajongPlugin</name>
-    <description>Japanese riichi mahjong for Paper servers</description>
+    <description>Japanese riichi and taiwanese sixteen tile mahjong for Paper servers</description>
 
     <properties>
         <java.version>25</java.version>

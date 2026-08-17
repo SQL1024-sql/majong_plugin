@@ -43,15 +43,19 @@ public final class TableView {
 
     /** The header line: round, honba, sticks and how much wall is left. */
     public static Component header(TileRenderer renderer, RiichiGame game) {
-        return Component.text()
+        TextComponent.Builder builder = Component.text()
                 .append(Component.text(game.roundName(), NamedTextColor.YELLOW))
                 .append(Component.text("  剩餘", NamedTextColor.GRAY))
                 .append(Component.text(game.wallRemaining(), NamedTextColor.WHITE))
-                .append(Component.text("張  供託", NamedTextColor.GRAY))
-                .append(Component.text(game.riichiSticks(), NamedTextColor.WHITE))
-                .append(Component.text("  寶牌", NamedTextColor.GRAY))
-                .append(tiles(renderer, game.doraIndicators()))
-                .build();
+                .append(Component.text("張", NamedTextColor.GRAY));
+        // Sticks and dora are riichi ideas; a taiwanese table has neither.
+        if (game.variant().hasDora()) {
+            builder.append(Component.text("  供託", NamedTextColor.GRAY))
+                    .append(Component.text(game.riichiSticks(), NamedTextColor.WHITE))
+                    .append(Component.text("  寶牌", NamedTextColor.GRAY))
+                    .append(tiles(renderer, game.doraIndicators()));
+        }
+        return builder.build();
     }
 
     /** One line per seat: wind, name, score and the tiles they have shown. */
@@ -69,6 +73,13 @@ public final class TableView {
             builder.append(Component.text(" " + state.score(), NamedTextColor.GRAY));
             if (state.riichi()) {
                 builder.append(Component.text(" 立直", NamedTextColor.RED));
+            }
+            if (!state.flowers().isEmpty()) {
+                StringBuilder flowers = new StringBuilder(" 花");
+                for (com.majong.riichi.core.Flower flower : state.flowers()) {
+                    flowers.append(flower.display());
+                }
+                builder.append(Component.text(flowers.toString(), NamedTextColor.LIGHT_PURPLE));
             }
             for (Meld meld : state.hand().melds()) {
                 builder.append(meldComponent(renderer, meld));
@@ -218,7 +229,7 @@ public final class TableView {
                         NamedTextColor.WHITE));
             }
             case HandResult.AbortiveDraw abortive -> builder.append(
-                    Component.text("途中流局 " + abortive.reason().display(), NamedTextColor.AQUA));
+                    Component.text("中途流局 " + abortive.reason().display(), NamedTextColor.AQUA));
         }
         builder.append(Component.newline());
         int[] deltas = result.deltas();
@@ -238,7 +249,7 @@ public final class TableView {
     /** The final table order once the game is over. */
     public static Component standings(RiichiGame game, Table table) {
         TextComponent.Builder builder = Component.text()
-                .append(Component.text("終局", NamedTextColor.GOLD));
+                .append(Component.text("對局結束", NamedTextColor.GOLD));
         int place = 1;
         for (SeatState state : game.standings()) {
             builder.append(Component.newline());

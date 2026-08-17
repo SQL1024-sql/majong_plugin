@@ -5,7 +5,7 @@ public record ScoredYaku(Yaku yaku, int han) {
 
     public String display() {
         if (yaku.isYakuman()) {
-            return yaku.display() + (yaku.yakumanMultiplier() > 1 ? " (ダブル役満)" : " (役満)");
+            return yaku.display() + (yaku.yakumanMultiplier() > 1 ? "（雙倍役滿）" : "（役滿）");
         }
         return yaku.display() + " " + han + "翻";
     }

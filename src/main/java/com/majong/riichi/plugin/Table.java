@@ -461,6 +461,12 @@ public final class Table implements GameListener {
     }
 
     @Override
+    public void onFlower(RiichiGame game, int seat, com.majong.riichi.core.Flower flower) {
+        broadcast(Component.text(displayName(seat) + " 補花 " + flower.display(),
+                NamedTextColor.LIGHT_PURPLE));
+    }
+
+    @Override
     public void onDoraRevealed(RiichiGame game, Tile indicator) {
         broadcast(renderer -> Component.text()
                 .append(Component.text("新寶牌指示 ", NamedTextColor.GOLD))

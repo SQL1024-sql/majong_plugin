@@ -175,9 +175,9 @@ public final class RiichiGame {
         return Tiles.EAST + Math.floorMod(seat - dealer, SEATS);
     }
 
-    /** Round and hand as it is usually written, for example {@code 東1局 2本場}. */
+    /** Round and hand as it is usually written, for example {@code 東1局 連莊2}. */
     public String roundName() {
-        return Tiles.windLetter(roundWind) + handNumber + "局 " + honba + "本場";
+        return Tiles.windLetter(roundWind) + handNumber + "局 連莊" + honba;
     }
 
     // ------------------------------------------------------------ hand flow
@@ -227,7 +227,7 @@ public final class RiichiGame {
 
     private void drawFor(int seat, boolean replacement) {
         SeatState state = seats[seat];
-        if (!replacement && wall.isExhausted()) {
+        if (replacement ? !wall.canDrawReplacement() : wall.isExhausted()) {
             finishExhaustiveDraw();
             return;
         }
@@ -237,6 +237,12 @@ public final class RiichiGame {
             state.addFlower(piece.flower());
             listener.onFlower(this, seat, piece.flower());
             replacement = true;
+            if (!wall.canDrawReplacement()) {
+                // The two ends of the wall met on a flower, so there is nothing
+                // left to replace it with and the hand is over.
+                finishExhaustiveDraw();
+                return;
+            }
             piece = wall.drawReplacementPiece();
         }
         Tile tile = piece.tile();
@@ -517,7 +523,10 @@ public final class RiichiGame {
     private void completeKan(int seat) {
         clearAllIppatsu();
         wall.revealKanIndicator();
-        listener.onDoraRevealed(this, wall.doraIndicators().getLast());
+        // A taiwanese wall has no dead wall, so a kan turns nothing over.
+        if (!wall.doraIndicators().isEmpty()) {
+            listener.onDoraRevealed(this, wall.doraIndicators().getLast());
+        }
         // Four kans end the hand unless they all belong to the same player.
         if (totalKans() >= 4 && countKanOwners() > 1) {
             fourKanAbort = true;
@@ -915,7 +924,7 @@ public final class RiichiGame {
             lines.add(scored.display());
         }
         if (value.dora() + value.uraDora() + value.redDora() > 0) {
-            lines.add("ドラ" + value.dora() + " 裏ドラ" + value.uraDora() + " 赤" + value.redDora());
+            lines.add("寶牌" + value.dora() + " 裏寶牌" + value.uraDora() + " 赤寶牌" + value.redDora());
         }
         settleHand(new HandResult.Won(winner, loser, lines, value.summary(), deltas),
                 winner == dealer);

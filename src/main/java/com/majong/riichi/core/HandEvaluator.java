@@ -73,7 +73,7 @@ public final class HandEvaluator {
             int base = ScoreCalculator.YAKUMAN_BASE * multiplier;
             Payment payment = ScoreCalculator.payment(base, context.isDealer(), context.tsumo(),
                     context.honba(), context.riichiSticks());
-            return new HandValue(scored, 0, 0, 0, 0, 0, base, "役満", payment);
+            return new HandValue(scored, 0, 0, 0, 0, 0, base, "役滿", payment);
         }
 
         Map<Yaku, Integer> yaku = YakuEvaluator.yaku(interpretation, context, closed);
