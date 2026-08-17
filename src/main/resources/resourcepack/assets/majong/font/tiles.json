@@ -3,8 +3,8 @@
     {
       "type": "bitmap",
       "file": "majong:font/tiles.png",
-      "height": 20,
-      "ascent": 15,
+      "height": 26,
+      "ascent": 20,
       "chars": [
         "",
         "",

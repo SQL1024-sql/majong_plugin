@@ -177,7 +177,7 @@ public final class RiichiGame {
 
     /** Round and hand as it is usually written, for example {@code 東1局 2本場}. */
     public String roundName() {
-        return Tiles.display(roundWind) + handNumber + "局 " + honba + "本場";
+        return Tiles.windLetter(roundWind) + handNumber + "局 " + honba + "本場";
     }
 
     // ------------------------------------------------------------ hand flow

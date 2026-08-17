@@ -45,11 +45,11 @@ public final class TableView {
     public static Component header(TileRenderer renderer, RiichiGame game) {
         return Component.text()
                 .append(Component.text(game.roundName(), NamedTextColor.YELLOW))
-                .append(Component.text("  残り", NamedTextColor.GRAY))
+                .append(Component.text("  剩餘", NamedTextColor.GRAY))
                 .append(Component.text(game.wallRemaining(), NamedTextColor.WHITE))
-                .append(Component.text("枚  供託", NamedTextColor.GRAY))
+                .append(Component.text("張  供託", NamedTextColor.GRAY))
                 .append(Component.text(game.riichiSticks(), NamedTextColor.WHITE))
-                .append(Component.text("  ドラ", NamedTextColor.GRAY))
+                .append(Component.text("  寶牌", NamedTextColor.GRAY))
                 .append(tiles(renderer, game.doraIndicators()))
                 .build();
     }
@@ -63,7 +63,8 @@ public final class TableView {
             builder.append(Component.newline());
             builder.append(Component.text(turn ? "▶ " : "  ",
                     turn ? NamedTextColor.YELLOW : NamedTextColor.DARK_GRAY));
-            builder.append(Component.text(Tiles.display(game.seatWind(seat)), NamedTextColor.GOLD));
+            builder.append(Component.text(Tiles.windLetter(game.seatWind(seat)),
+                    NamedTextColor.GOLD));
             builder.append(Component.text(" " + table.displayName(seat), NamedTextColor.WHITE));
             builder.append(Component.text(" " + state.score(), NamedTextColor.GRAY));
             if (state.riichi()) {
@@ -93,7 +94,7 @@ public final class TableView {
     /** A player's own pond, most recent tile last. */
     public static Component discards(TileRenderer renderer, RiichiGame game, int seat, Table table) {
         return Component.text()
-                .append(Component.text(table.displayName(seat) + "の河", NamedTextColor.GRAY))
+                .append(Component.text(table.displayName(seat) + "的牌河", NamedTextColor.GRAY))
                 .append(tiles(renderer, game.seat(seat).discards()))
                 .build();
     }
@@ -152,22 +153,22 @@ public final class TableView {
         if (!any) {
             return Component.empty();
         }
-        return Component.text().append(Component.text("選択", NamedTextColor.GRAY))
+        return Component.text().append(Component.text("選擇", NamedTextColor.GRAY))
                 .append(builder.build()).build();
     }
 
     private static Component button(Action action) {
         return switch (action) {
-            case Action.Tsumo ignored -> button("ツモ", "/mj tsumo", NamedTextColor.GOLD);
-            case Action.Ron ignored -> button("ロン", "/mj ron", NamedTextColor.GOLD);
-            case Action.Pon ignored -> button("ポン", "/mj pon", NamedTextColor.AQUA);
-            case Action.Kan kan -> button("カン " + Tiles.display(kan.kind()),
+            case Action.Tsumo ignored -> button("自摸", "/mj tsumo", NamedTextColor.GOLD);
+            case Action.Ron ignored -> button("胡牌", "/mj ron", NamedTextColor.GOLD);
+            case Action.Pon ignored -> button("碰", "/mj pon", NamedTextColor.AQUA);
+            case Action.Kan kan -> button("槓 " + Tiles.display(kan.kind()),
                     "/mj kan " + Tiles.notation(kan.kind()), NamedTextColor.AQUA);
             case Action.Chi chi -> button(
-                    "チー " + Tiles.display(chi.first().kind()) + Tiles.display(chi.second().kind()),
+                    "吃 " + Tiles.display(chi.first().kind()) + Tiles.display(chi.second().kind()),
                     "/mj chi " + chi.first().notation() + " " + chi.second().notation(),
                     NamedTextColor.AQUA);
-            case Action.Pass ignored -> button("スルー", "/mj pass", NamedTextColor.GRAY);
+            case Action.Pass ignored -> button("跳過", "/mj pass", NamedTextColor.GRAY);
             case Action.NineTerminals ignored ->
                     button("九種九牌", "/mj kyuushu", NamedTextColor.LIGHT_PURPLE);
             case Action.Discard discard -> discard.riichi()
@@ -190,7 +191,7 @@ public final class TableView {
         switch (result) {
             case HandResult.Won won -> {
                 builder.append(Component.text(table.displayName(won.winner()), NamedTextColor.GOLD));
-                builder.append(Component.text(won.isTsumo() ? " ツモ和了" : " ロン和了",
+                builder.append(Component.text(won.isTsumo() ? " 自摸" : " 胡牌",
                         NamedTextColor.YELLOW));
                 if (!won.isTsumo()) {
                     builder.append(Component.text(" ← " + table.displayName(won.loser()),
@@ -207,13 +208,13 @@ public final class TableView {
                 builder.append(Component.text("  " + won.summary(), NamedTextColor.YELLOW));
             }
             case HandResult.ExhaustiveDraw draw -> {
-                builder.append(Component.text("荒牌平局", NamedTextColor.AQUA));
+                builder.append(Component.text("流局", NamedTextColor.AQUA));
                 builder.append(Component.newline());
                 StringBuilder ready = new StringBuilder();
                 for (int seat : draw.tenpaiSeats()) {
                     ready.append(table.displayName(seat)).append(' ');
                 }
-                builder.append(Component.text("  聴牌 " + (ready.isEmpty() ? "なし" : ready),
+                builder.append(Component.text("  聽牌 " + (ready.isEmpty() ? "無" : ready),
                         NamedTextColor.WHITE));
             }
             case HandResult.AbortiveDraw abortive -> builder.append(

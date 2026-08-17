@@ -18,7 +18,7 @@ import zlib
 
 from PIL import Image, ImageDraw, ImageFont
 
-CELL_W, CELL_H = 16, 20
+CELL_W, CELL_H = 20, 26
 COLS = 9
 FIRST_CODEPOINT = 0xE000
 
@@ -27,7 +27,7 @@ FONT_CANDIDATES = [
     "/usr/share/fonts/opentype/unifont/unifont.otf",
     "/etc/alternatives/fonts-japanese-gothic.ttf",
 ]
-FONT_SIZE = 12
+FONT_SIZE = 16
 
 MANIFEST = "manifest.txt"
 
@@ -54,7 +54,7 @@ HATSU = (24, 120, 60, 255)
 CHUN = (184, 32, 32, 255)
 
 # The drawable area inside the tile face.
-ART_X, ART_Y, ART_W, ART_H = 2, 2, 12, 14
+ART_X, ART_Y, ART_W, ART_H = 2, 2, 16, 20
 
 # Where the pips sit on a three by three grid, per count.
 PIP_LAYOUT = {
@@ -151,7 +151,7 @@ def pip_origin(col, row, size, pitch_x, pitch_y):
     return x, y
 
 
-def draw_circle(img, x, y, colour, size=3):
+def draw_circle(img, x, y, colour, size=4):
     """A filled square with softened corners reads as a circle at this size."""
     draw = ImageDraw.Draw(img)
     draw.rectangle([x, y, x + size - 1, y + size - 1], fill=colour)
@@ -170,13 +170,13 @@ def pin_tile(rank, aka=False):
     img = blank_tile(aka)
     if rank == 1:
         draw = ImageDraw.Draw(img)
-        x = ART_X + (ART_W - 7) // 2
-        y = ART_Y + (ART_H - 7) // 2
-        draw.ellipse([x, y, x + 6, y + 6], fill=PIN)
-        draw.ellipse([x + 2, y + 2, x + 4, y + 4], fill=PIN_CENTRE)
+        x = ART_X + (ART_W - 9) // 2
+        y = ART_Y + (ART_H - 9) // 2
+        draw.ellipse([x, y, x + 8, y + 8], fill=PIN)
+        draw.ellipse([x + 3, y + 3, x + 5, y + 5], fill=PIN_CENTRE)
         return img
     for col, row in PIP_LAYOUT[rank]:
-        x, y = pip_origin(col, row, 3, 4, 4)
+        x, y = pip_origin(col, row, 4, 5, 5)
         draw_circle(img, x, y, AKA if aka else PIN)
     return img
 
@@ -185,18 +185,19 @@ def sou_tile(rank, aka=False):
     img = blank_tile(aka)
     if rank == 1:
         x = ART_X + (ART_W - 3) // 2
-        y = ART_Y + 2
-        ImageDraw.Draw(img).rectangle([x, y, x + 2, y + 9], fill=AKA if aka else SOU)
-        img.putpixel((x + 1, y + 4), FACE)
+        y = ART_Y + 3
+        ImageDraw.Draw(img).rectangle([x, y, x + 2, y + 13], fill=AKA if aka else SOU)
+        for band in (4, 9):
+            ImageDraw.Draw(img).rectangle([x, y + band, x + 2, y + band], fill=FACE)
         return img
     for col, row in PIP_LAYOUT[rank]:
-        x, y = pip_origin(col, row, 2, 4, 5)
+        x, y = pip_origin(col, row, 3, 5, 6)
         middle = rank == 5 and col == 1 and row == 1
         colour = AKA if aka else (AKA if middle else SOU)
         draw = ImageDraw.Draw(img)
-        draw.rectangle([x, y, x + 1, y + 3], fill=colour)
-        # One lighter row is all the segmenting that fits at this size.
-        draw.rectangle([x, y + 2, x + 1, y + 2], fill=FACE_AKA if aka else FACE)
+        draw.rectangle([x, y, x + 2, y + 4], fill=colour)
+        # A lighter band gives the stalk its node.
+        draw.rectangle([x, y + 2, x + 2, y + 2], fill=FACE_AKA if aka else FACE)
     return img
 
 
@@ -474,7 +475,7 @@ def main():
             "type": "bitmap",
             "file": "majong:font/tiles.png",
             "height": CELL_H,
-            "ascent": 15,
+            "ascent": CELL_H - 6,
             "chars": chars,
         }]}, handle, ensure_ascii=False, indent=2)
         handle.write("\n")

@@ -22,7 +22,14 @@ public final class Tiles {
     public static final int GREEN = 32;
     public static final int RED_DRAGON = 33;
 
-    private static final String[] HONOR_NAMES = {"東", "南", "西", "北", "白", "發", "中"};
+    /** How the honours are named in full: the winds take a 風, the dragons their colour. */
+    private static final String[] HONOR_NAMES =
+        {"東風", "南風", "西風", "北風", "白板", "發財", "紅中"};
+    /** The single character a wind is written with in a round heading. */
+    private static final String[] WIND_LETTERS = {"東", "南", "西", "北"};
+    private static final String[] RANK_NAMES =
+        {"一", "二", "三", "四", "五", "六", "七", "八", "九"};
+    private static final String[] SUIT_NAMES = {"萬", "筒", "索"};
 
     private Tiles() {
     }
@@ -115,9 +122,13 @@ public final class Tiles {
         return rank == 9 ? indicator - 8 : indicator + 1;
     }
 
-    /** Parses notation such as {@code 3m}, {@code 7z} or {@code 0p} (red five). */
+    /** Parses notation such as {@code 3m}, {@code 7z}, {@code 0p}, or 三萬 and 東風. */
     public static int parse(String text) {
         String trimmed = text.trim();
+        int chinese = parseChinese(trimmed);
+        if (chinese >= 0) {
+            return chinese;
+        }
         if (trimmed.length() != 2) {
             throw new IllegalArgumentException("bad tile notation: " + text);
         }
@@ -134,6 +145,38 @@ public final class Tiles {
             rank = 5;
         }
         return kindOf(suit, rank);
+    }
+
+    /** Reads a tile written in chinese, or {@code -1} if it is not one. */
+    private static int parseChinese(String text) {
+        for (int index = 0; index < HONOR_NAMES.length; index++) {
+            if (HONOR_NAMES[index].equals(text)) {
+                return EAST + index;
+            }
+        }
+        for (int index = 0; index < WIND_LETTERS.length; index++) {
+            if (WIND_LETTERS[index].equals(text)) {
+                return EAST + index;
+            }
+        }
+        if (text.length() != 2) {
+            return -1;
+        }
+        int rank = -1;
+        for (int index = 0; index < RANK_NAMES.length; index++) {
+            if (RANK_NAMES[index].equals(text.substring(0, 1))) {
+                rank = index + 1;
+            }
+        }
+        if (rank < 0) {
+            return -1;
+        }
+        for (int index = 0; index < SUIT_NAMES.length; index++) {
+            if (SUIT_NAMES[index].equals(text.substring(1))) {
+                return index * 9 + rank - 1;
+            }
+        }
+        return -1;
     }
 
     /** Parses a compact hand such as {@code 123m456p789s11122z}. */
@@ -183,13 +226,21 @@ public final class Tiles {
         return rankOf(kind) + String.valueOf(suitOf(kind).code());
     }
 
-    /** Display name using the usual japanese characters for honors. */
+    /** The tile's name in full, as it would be said out loud: 五萬, 東風, 紅中. */
     public static String display(int kind) {
         checkKind(kind);
         if (isHonor(kind)) {
             return HONOR_NAMES[kind - EAST];
         }
-        return notation(kind);
+        return RANK_NAMES[rankOf(kind) - 1] + SUIT_NAMES[kind / 9];
+    }
+
+    /** Just the wind's character, for headings like 東1局. */
+    public static String windLetter(int kind) {
+        if (!isWind(kind)) {
+            throw new IllegalArgumentException("not a wind: " + kind);
+        }
+        return WIND_LETTERS[kind - EAST];
     }
 
     public static int totalCount(int[] counts) {

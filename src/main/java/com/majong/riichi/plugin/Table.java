@@ -178,7 +178,7 @@ public final class Table implements GameListener {
         if (state == State.PLAYING) {
             // Hand the empty seat to a bot so the game can carry on.
             bots[seat] = true;
-            broadcast(Component.text(displayName(seat) + " が席を離れました", NamedTextColor.GRAY));
+            broadcast(Component.text(displayName(seat) + " 離開了座位", NamedTextColor.GRAY));
             advance();
         }
         return true;
@@ -452,10 +452,10 @@ public final class Table implements GameListener {
 
     private static String callName(Meld meld) {
         return switch (meld.type()) {
-            case CHI -> "チー";
-            case PON -> "ポン";
+            case CHI -> "吃";
+            case PON -> "碰";
             case ANKAN -> "暗槓";
-            case DAIMINKAN -> "大明槓";
+            case DAIMINKAN -> "明槓";
             case SHOUMINKAN -> "加槓";
         };
     }
@@ -463,7 +463,7 @@ public final class Table implements GameListener {
     @Override
     public void onDoraRevealed(RiichiGame game, Tile indicator) {
         broadcast(renderer -> Component.text()
-                .append(Component.text("新ドラ表示 ", NamedTextColor.GOLD))
+                .append(Component.text("新寶牌指示 ", NamedTextColor.GOLD))
                 .append(renderer.render(indicator))
                 .build());
     }
